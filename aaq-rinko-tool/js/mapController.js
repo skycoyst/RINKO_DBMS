@@ -126,7 +126,7 @@ const mapController = (() => {
   function addMarker(station, fileCount = 0) {
     if (!map) return null;
 
-    const catColor = { 定期: '#2563EB', 臨時: '#D97706', 未設定: '#6B7280' };
+    const catColor = { 定点: '#2563EB', 臨時: '#D97706', 未設定: '#6B7280' };
     const color = catColor[station.category] || '#6B7280';
 
     const icon = L.divIcon({

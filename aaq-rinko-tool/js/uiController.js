@@ -29,7 +29,7 @@ const uiController = (() => {
 
     el.innerHTML = `
       <div class="swimlane-header">
-        <span class="station-link" onclick="mapController.openMapModal('${_esc(station.id)}', app.state.stations, app.getFileCounts())">${_esc(station.name)}</span>
+        <span class="station-link" onclick="mapController.openMapModal('${_esc(station.id)}', app.state.stations, app.getFileCounts())">${_esc(station.name)} (${_esc(station.id)})</span>
         <span class="cat-${_esc(station.category)} badge-spaced">${_esc(station.category)}</span>
         <span class="badge badge-blue badge-spaced swimlane-count" data-station-id="${_esc(station.id)}">0</span>
         <div class="swimlane-actions">
@@ -358,7 +358,7 @@ const uiController = (() => {
     // 地点マスタのマーカー
     for (const st of stations) {
       if (st._invalid || st.lat === null || st.lon === null) continue;
-      const catColor = { 定期: '#2563EB', 臨時: '#D97706', 未設定: '#6B7280' };
+      const catColor = { 定点: '#2563EB', 臨時: '#D97706', 未設定: '#6B7280' };
       const color = catColor[st.category] || '#6B7280';
       const m = L.circleMarker([st.lat, st.lon], {
         radius: 6,
@@ -430,7 +430,7 @@ const uiController = (() => {
     document.getElementById('sf-editing-id').value = station ? station.id : '';
     document.getElementById('sf-name').value = station ? station.name : '';
     document.getElementById('sf-id').value = station ? station.id : _generateNextId();
-    document.getElementById('sf-category').value = station ? station.category : '定期';
+    document.getElementById('sf-category').value = station ? station.category : '定点';
     document.getElementById('sf-lat').value = station ? (station.lat || '') : (lat !== null ? lat.toFixed(6) : '');
     document.getElementById('sf-lon').value = station ? (station.lon || '') : (lon !== null ? lon.toFixed(6) : '');
     document.getElementById('sf-keywords').value = station ? (station.keywords || []).join('|') : '';
