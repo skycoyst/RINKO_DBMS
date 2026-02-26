@@ -15,6 +15,7 @@ const app = (() => {
   };
 
   let cardSeq = 0;
+  let obsOverwriteAll = false;
 
   // ─── 初期化 ───
 
@@ -165,8 +166,10 @@ const app = (() => {
     const csvFiles = files.filter(f => /\.csv$/i.test(f.name));
     if (csvFiles.length === 0) return;
 
+    obsOverwriteAll = false; // バッチごとにリセット
+
     for (const file of csvFiles) {
-      await _loadSingleObsFile(file);
+      await _loadSingleObsFile(file, csvFiles.length > 1);
     }
 
     // 自動仕分け
@@ -174,7 +177,7 @@ const app = (() => {
     uiController.updateCounts();
   }
 
-  async function _loadSingleObsFile(file) {
+  async function _loadSingleObsFile(file, isMultiple = false) {
     // 先にパースして観測日時を取得（重複判定に使用）
     let parsed;
     try {
@@ -204,27 +207,40 @@ const app = (() => {
       }
 
       // 同名かつ同観測日時 → 上書き確認
+      if (obsOverwriteAll) {
+        await _overwriteCard(conflictCard, file.name, parsed);
+        return;
+      }
+
       await new Promise(resolve => {
         const dateLabel = newDate ? `（${newDate}）` : '（日時不明）';
+        const buttons = [
+          {
+            label: '上書き', type: 'danger',
+            callback: async () => {
+              await _overwriteCard(conflictCard, file.name, parsed);
+              resolve();
+            },
+          }
+        ];
+
+        if (isMultiple) {
+          buttons.push({
+            label: 'すべて上書き', type: 'danger',
+            callback: async () => {
+              obsOverwriteAll = true;
+              await _overwriteCard(conflictCard, file.name, parsed);
+              resolve();
+            }
+          });
+        }
+
+        buttons.push({ label: 'スキップ', type: 'secondary', callback: () => resolve() });
+
         uiController.showConfirm(
           '同名・同観測日時ファイル',
           `「${file.name}」${dateLabel} は既に読み込まれています。上書きしますか？`,
-          [
-            {
-              label: '上書き', type: 'danger',
-              callback: async () => {
-                const savedStationId = conflictCard.stationId;
-                _removeCardState(conflictCard.id);
-                uiController.removeCard(conflictCard.id);
-                const newCard = await _registerParsedCard(file.name, parsed);
-                if (newCard && savedStationId !== '') {
-                  moveCard(newCard.id, savedStationId);
-                }
-                resolve();
-              },
-            },
-            { label: 'スキップ', type: 'secondary', callback: () => resolve() },
-          ]
+          buttons
         );
       });
       return;
@@ -232,6 +248,19 @@ const app = (() => {
 
     // 同名なし → 新規登録
     await _registerParsedCard(file.name, parsed);
+  }
+
+  /**
+   * 既存のカードを新しいデータで上書き
+   */
+  async function _overwriteCard(oldCard, fileName, parsed) {
+    const savedStationId = oldCard.stationId;
+    _removeCardState(oldCard.id);
+    uiController.removeCard(oldCard.id);
+    const newCard = await _registerParsedCard(fileName, parsed);
+    if (newCard && savedStationId !== '') {
+      moveCard(newCard.id, savedStationId);
+    }
   }
 
   async function _registerParsedCard(fileName, parsed) {
@@ -262,6 +291,45 @@ const app = (() => {
     }
 
     return card;
+  }
+
+  /**
+   * 観測ファイルを削除
+   * @param {string} cardId
+   * @param {Event} e
+   */
+  function removeFile(cardId, e) {
+    if (e) e.stopPropagation(); // カード選択イベントを抑止
+
+    const card = state.cards.get(cardId);
+    if (!card) return;
+
+    if (!confirm(`ファイル "${card.fileName}" を削除しますか？`)) return;
+
+    // assignments から削除
+    const stationId = card.stationId;
+    const cardIds = state.assignments.get(stationId);
+    if (cardIds) {
+      const idx = cardIds.indexOf(cardId);
+      if (idx !== -1) cardIds.splice(idx, 1);
+    }
+
+    // cardOrder から削除
+    const orderIdx = state.cardOrder.indexOf(cardId);
+    if (orderIdx !== -1) state.cardOrder.splice(orderIdx, 1);
+
+    // cards から削除
+    state.cards.delete(cardId);
+
+    // UI 更新
+    uiController.removeCard(cardId);
+    uiController.showToast(`ファイルを削除しました: ${card.fileName}`, 'info');
+
+    // マーカーポップアップ更新
+    if (stationId) {
+      const st = state.stations.find(s => s.id === stationId);
+      if (st) mapController.refreshMarkerPopup(stationId, st, getFileCounts().get(stationId) || 0);
+    }
   }
 
   // ─── 自動仕分け ───
@@ -723,6 +791,7 @@ const app = (() => {
     onObsFileSelect,
     moveCard,
     moveCards,
+    removeFile,
     saveStationForm,
     editStation,
     deleteStation,

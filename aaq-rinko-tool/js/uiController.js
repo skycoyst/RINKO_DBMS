@@ -92,6 +92,7 @@ const uiController = (() => {
     el.innerHTML = `
       ${icon ? `<div class="file-card-icon" title="ヘッダー行を69行目で検出">${icon}</div>` : ''}
       <div class="file-card-name">${_esc(card.fileName.replace(/\.csv$/i, ''))}</div>
+      <div class="file-card-delete" title="ファイルを削除" onclick="app.removeFile('${_esc(card.id)}', event)">×</div>
       <div class="file-card-meta">
         <div>📅 ${_esc(dtStr)}</div>
         <div>⬇ ${_esc(depStr)}</div>

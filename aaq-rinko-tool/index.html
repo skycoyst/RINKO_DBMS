@@ -42,7 +42,7 @@
   <main class="flex h-[calc(100vh-56px)]">
 
     <!-- 左ペイン: 地点マスタ -->
-    <div class="w-1/4 flex flex-col border-r border-gray-300 bg-white overflow-hidden">
+    <div class="flex flex-col border-r border-gray-300 bg-white overflow-hidden" style="width: 12.5%;">
 
       <!-- 地点マスタドロップゾーン -->
       <div id="master-dropzone"
@@ -99,23 +99,30 @@
       </div>
 
       <!-- スクロール可能エリア -->
-      <div class="flex-1 overflow-y-auto px-3 pb-3" id="swimlane-container">
+      <div class="flex-1 flex flex-col overflow-hidden">
 
-        <!-- 未分類エリア -->
-        <div class="mb-4">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="font-semibold text-gray-700 text-sm">未分類</span>
-            <span id="unclassified-count" class="badge badge-gray">0</span>
-          </div>
-          <div id="unclassified-area"
-            class="swim-drop-target min-h-[60px] rounded-lg border-2 border-dashed border-gray-300 bg-white p-2 flex flex-wrap gap-2"
-            data-station-id="" ondragover="uiController.onDragOver(event)" ondrop="uiController.onDrop(event)">
-            <div class="unclassified-placeholder text-gray-400 text-sm w-full text-center py-2">ここにドラッグして未分類に移動</div>
+        <!-- トップ: 未分類エリア (全幅) -->
+        <div id="unclassified-container" class="px-3 pb-2 flex-shrink-0">
+          <div class="swimlane" id="unclassified-column" data-station-id=""
+            style="width:100% !important; height:auto; min-height:130px; margin-bottom:0;">
+            <div class="swimlane-header">
+              <span class="font-semibold text-gray-700 text-sm">未分類の観測データ</span>
+              <span id="unclassified-count" class="badge badge-gray badge-spaced">0</span>
+            </div>
+            <div id="unclassified-area" class="swimlane-body dropzone swim-drop-target" data-station-id=""
+              style="flex-direction:row; flex-wrap:wrap; overflow-y:auto; max-height:200px;"
+              ondragover="uiController.onDragOver(event)" ondrop="uiController.onDrop(event)">
+              <div class="unclassified-placeholder text-gray-400 text-sm w-full text-center py-4">
+                ここにファイルをドロップ、または未分類へ移動
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- スイムレーン群（動的生成） -->
-        <div id="swimlanes"></div>
+        <!-- ボトム: 地点別カラム (カンバン形式) -->
+        <div class="flex-1" id="swimlane-container">
+          <div id="swimlanes"></div>
+        </div>
 
       </div>
     </div>
@@ -173,7 +180,7 @@
         <div class="form-group">
           <label class="form-label">調査区分 <span class="text-red-500">*</span></label>
           <select id="sf-category" class="form-input">
-            <option value="定期">定期</option>
+            <option value="定点">定点</option>
             <option value="臨時">臨時</option>
             <option value="未設定">未設定</option>
           </select>
