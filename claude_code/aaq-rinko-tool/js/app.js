@@ -602,6 +602,36 @@ const app = (() => {
     return assignments;
   }
 
+  // ─── 地点マスタ CSV ダウンロード ───
+
+  /**
+   * 現在の地点マスタ（手動追加・編集分を含む）を UTF-8 BOM CSV でダウンロード
+   */
+  function downloadMasterCSV() {
+    const validStations = state.stations.filter(s => !s._invalid);
+    if (validStations.length === 0) {
+      uiController.showToast('ダウンロードできる地点データがありません', 'warn');
+      return;
+    }
+
+    const headers = ['地点名', '地点ID', '調査区分', '緯度', '経度', 'ファイル名キーワード', '備考'];
+    const rows = validStations.map(s => [
+      s.name,
+      s.id,
+      s.category,
+      s.lat !== null ? s.lat : '',
+      s.lon !== null ? s.lon : '',
+      (s.keywords || []).join('|'),
+      s.note || '',
+    ]);
+
+    const blob = dataProcessor.generateCSVBlob(headers, rows);
+    const now  = new Date();
+    const ts   = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+    _downloadBlob(blob, `地点マスタ_${ts}.csv`);
+    uiController.showToast(`地点マスタ_${ts}.csv をダウンロードしました（${validStations.length}件）`, 'success');
+  }
+
   function _downloadBlob(blob, fileName) {
     const url = URL.createObjectURL(blob);
     const a   = document.createElement('a');
@@ -644,5 +674,6 @@ const app = (() => {
     deleteSwimlane,
     addStationFromMap,
     getFileCounts,
+    downloadMasterCSV,
   };
 })();

@@ -387,8 +387,8 @@ const uiController = (() => {
   }
 
   function showResetButton(show) {
-    const btn = document.getElementById('btn-reset-master');
-    btn.classList.toggle('hidden', !show);
+    document.getElementById('btn-reset-master').classList.toggle('hidden', !show);
+    document.getElementById('btn-download-master').classList.toggle('hidden', !show);
   }
 
   // ─── カード数バッジ更新 ───

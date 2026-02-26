@@ -44,7 +44,8 @@
 
       <!-- 地点マスタドロップゾーン -->
       <div id="master-dropzone"
-           class="dropzone m-3 rounded-lg border-2 border-dashed border-blue-400 bg-blue-50 p-4 text-center cursor-pointer flex-shrink-0"
+           class="dropzone m-3 rounded-lg border-2 border-dashed border-blue-400 bg-blue-50 p-3 text-center cursor-pointer flex-shrink-0"
+           style="height:120px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;"
            ondragover="event.preventDefault()" ondrop="app.onMasterDrop(event)">
         <div class="text-blue-600 font-medium mb-1">地点マスタCSVをドロップ</div>
         <div class="text-gray-500 text-sm">または</div>
@@ -58,7 +59,13 @@
       <!-- 地点一覧 -->
       <div class="px-3 pb-1 flex items-center justify-between flex-shrink-0">
         <span class="text-sm font-semibold text-gray-700">地点一覧</span>
-        <span id="master-count" class="text-xs text-gray-500"></span>
+        <div class="flex items-center gap-2">
+          <span id="master-count" class="text-xs text-gray-500"></span>
+          <button id="btn-download-master" class="btn-secondary btn-sm hidden"
+            onclick="app.downloadMasterCSV()" title="現在の地点マスタをCSVでダウンロード">
+            ↓ マスタDL
+          </button>
+        </div>
       </div>
       <div id="station-list" class="flex-1 overflow-y-auto px-3 pb-3">
         <div class="text-gray-400 text-sm text-center mt-8">地点マスタを読み込んでください</div>
@@ -71,6 +78,7 @@
       <!-- 観測データドロップゾーン -->
       <div id="obs-dropzone"
            class="dropzone m-3 rounded-lg border-2 border-dashed border-green-400 bg-green-50 p-3 text-center cursor-pointer flex-shrink-0"
+           style="height:120px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;"
            ondragover="event.preventDefault()" ondrop="app.onObsDrop(event)">
         <div class="text-green-700 font-medium">観測データCSVをドロップ（複数可）</div>
         <label class="inline-block cursor-pointer text-green-700 underline text-sm">
