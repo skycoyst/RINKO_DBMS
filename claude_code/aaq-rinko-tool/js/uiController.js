@@ -343,9 +343,7 @@ const uiController = (() => {
   // ─── モーダル外クリックで閉じる ───
 
   function setupModalOutsideClick() {
-    document.getElementById('map-modal').addEventListener('click', function(e) {
-      if (e.target === this) mapController.closeMapModal();
-    });
+    // 地図モーダルはモーダル外クリックでは閉じない（×ボタンのみ）
     document.getElementById('preview-modal').addEventListener('click', function(e) {
       if (e.target === this) closePreviewModal();
     });
