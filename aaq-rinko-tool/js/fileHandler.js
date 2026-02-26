@@ -131,13 +131,14 @@ const fileHandler = (() => {
       const fields = parseCsvLine(lines[i]);
       const get = (name) => (colIdx[name] !== undefined ? (fields[colIdx[name]] || '').trim() : '');
 
-      const name      = get('地点名');
+      const name = get('地点名');
+      const nameRead = get('地点名_読み');
       const stationId = get('地点ID');
-      const category  = get('調査区分') || '未設定';
-      const lat       = parseFloat(get('緯度')) || null;
-      const lon       = parseFloat(get('経度')) || null;
-      const note      = get('備考');
-      const keywords  = get('ファイル名キーワード');
+      const category = get('調査区分') || '未設定';
+      const lat = parseFloat(get('緯度')) || null;
+      const lon = parseFloat(get('経度')) || null;
+      const note = get('備考');
+      const keywords = get('ファイル名キーワード');
 
       if (!name || !stationId) continue;
 
@@ -153,6 +154,7 @@ const fileHandler = (() => {
       stations.push({
         id: stationId,
         name,
+        name_read: nameRead,
         category,
         lat,
         lon,
@@ -256,7 +258,7 @@ const fileHandler = (() => {
 
     // ─── 派生情報の抽出 ───
     const headers = result.headerRow;
-    const dtIdx    = headers.findIndex(h => h.includes('観測日時') || h.toLowerCase().includes('date'));
+    const dtIdx = headers.findIndex(h => h.includes('観測日時') || h.toLowerCase().includes('date'));
     const depthIdx = headers.findIndex(h => h.includes('深度') || h.includes('depth'));
 
     // 観測日時（先頭行）

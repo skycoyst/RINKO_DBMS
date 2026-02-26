@@ -28,7 +28,7 @@ const app = (() => {
       const el = document.getElementById(id);
       el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('drag-over'); });
       el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
-      el.addEventListener('drop',     () => el.classList.remove('drag-over'));
+      el.addEventListener('drop', () => el.classList.remove('drag-over'));
     });
 
     uiController.setupModalOutsideClick();
@@ -65,7 +65,7 @@ const app = (() => {
             label: '差分更新（IDが一致するスイムレーンを維持）', type: 'secondary',
             callback: () => _doLoadMaster(file, 'diff'),
           },
-          { label: 'キャンセル', type: 'secondary', callback: () => {} },
+          { label: 'キャンセル', type: 'secondary', callback: () => { } },
         ]
       );
     } else {
@@ -107,7 +107,7 @@ const app = (() => {
       } else {
         // 差分更新
         const existingIds = new Set(state.stations.map(s => s.id));
-        const newIds      = new Set(stations.map(s => s.id));
+        const newIds = new Set(stations.map(s => s.id));
 
         // 削除された地点のスイムレーン → カードを未分類へ
         for (const sid of existingIds) {
@@ -134,7 +134,7 @@ const app = (() => {
 
       uiController.renderStationList(state.stations, getFileCounts());
       uiController.showResetButton(true);
-      uiController.showToast(`地点マスタを読み込みました（${stations.filter(s=>!s._invalid).length}件）`, 'success');
+      uiController.showToast(`地点マスタを読み込みました（${stations.filter(s => !s._invalid).length}件）`, 'success');
 
       // 自動仕分け（未分類カードのみ対象）
       _autoAssignUnclassified();
@@ -316,6 +316,45 @@ const app = (() => {
     }
   }
 
+  /**
+   * 複数カードを一括移動
+   * @param {string[]} cardIds
+   * @param {string} newStationId
+   */
+  function moveCards(cardIds, newStationId) {
+    if (!cardIds || cardIds.length === 0) return;
+
+    // 高速化のため、UI更新を一度にまとめる仕組みはないが、
+    // 各カードの内部状態を更新しつつ、最後に対象スイムレーンのカウントだけ更新するなどは可能
+    const oldStationIds = new Set();
+
+    for (const cardId of cardIds) {
+      const card = state.cards.get(cardId);
+      if (!card) continue;
+      if (card.stationId === newStationId) continue;
+
+      oldStationIds.add(card.stationId);
+      _moveAssignment(cardId, card.stationId, newStationId);
+      card.stationId = newStationId;
+
+      uiController.moveCardToArea(cardId, newStationId);
+    }
+
+    // 関連するスイムレーンのカウント・マップポップアップを一括更新
+    uiController.updateCounts();
+
+    oldStationIds.forEach(sid => {
+      if (sid) {
+        const st = state.stations.find(s => s.id === sid);
+        if (st) mapController.refreshMarkerPopup(sid, st, getFileCounts().get(sid) || 0);
+      }
+    });
+    if (newStationId) {
+      const st = state.stations.find(s => s.id === newStationId);
+      if (st) mapController.refreshMarkerPopup(newStationId, st, getFileCounts().get(newStationId) || 0);
+    }
+  }
+
   function _moveAssignment(cardId, fromId, toId) {
     // from から削除
     if (state.assignments.has(fromId)) {
@@ -382,13 +421,13 @@ const app = (() => {
    */
   function saveStationForm() {
     const editingId = document.getElementById('sf-editing-id').value.trim();
-    const name     = document.getElementById('sf-name').value.trim();
-    const id       = document.getElementById('sf-id').value.trim();
+    const name = document.getElementById('sf-name').value.trim();
+    const id = document.getElementById('sf-id').value.trim();
     const category = document.getElementById('sf-category').value;
-    const lat      = parseFloat(document.getElementById('sf-lat').value) || null;
-    const lon      = parseFloat(document.getElementById('sf-lon').value) || null;
-    const keywords = document.getElementById('sf-keywords').value.trim().split('|').map(k=>k.trim()).filter(Boolean);
-    const note     = document.getElementById('sf-note').value.trim();
+    const lat = parseFloat(document.getElementById('sf-lat').value) || null;
+    const lon = parseFloat(document.getElementById('sf-lon').value) || null;
+    const keywords = document.getElementById('sf-keywords').value.trim().split('|').map(k => k.trim()).filter(Boolean);
+    const note = document.getElementById('sf-note').value.trim();
 
     if (!name || !id) {
       uiController.showToast('地点名と地点IDは必須です', 'error');
@@ -452,7 +491,7 @@ const app = (() => {
             uiController.showToast(`地点「${st.name}」を削除しました`, 'success');
           },
         },
-        { label: 'キャンセル', type: 'secondary', callback: () => {} },
+        { label: 'キャンセル', type: 'secondary', callback: () => { } },
       ]
     );
   }
@@ -495,7 +534,7 @@ const app = (() => {
             uiController.showToast('マスタリセットしました', 'info');
           },
         },
-        { label: 'キャンセル', type: 'secondary', callback: () => {} },
+        { label: 'キャンセル', type: 'secondary', callback: () => { } },
       ]
     );
   }
@@ -511,7 +550,7 @@ const app = (() => {
 
     // 未分類ファイルの確認
     const unclassIds = state.assignments.get('') || [];
-    const warnIds    = [];
+    const warnIds = [];
     for (const [sid, cardIds] of state.assignments) {
       for (const cid of cardIds) {
         const card = state.cards.get(cid);
@@ -570,7 +609,7 @@ const app = (() => {
       result = dataProcessor.calculateDepthBinAverages(assignments, state.cards);
     }
 
-    const blob     = dataProcessor.generateCSVBlob(result.headers, result.rows);
+    const blob = dataProcessor.generateCSVBlob(result.headers, result.rows);
     const fileName = dataProcessor.generateOutputFileName(format);
     _downloadBlob(blob, fileName);
     uiController.showToast(`${fileName} をダウンロードしました（${result.rows.length}行）`, 'success');
@@ -591,10 +630,10 @@ const app = (() => {
         if (!card.parsed || card.parsed.error === 'データ行が0件です') continue;
 
         assignments.push({
-          stationId:   st ? st.id   : '',
+          stationId: st ? st.id : '',
           stationName: st ? st.name : '',
-          stationLat:  st ? st.lat  : null,
-          stationLon:  st ? st.lon  : null,
+          stationLat: st ? st.lat : null,
+          stationLon: st ? st.lon : null,
           card,
         });
       }
@@ -614,10 +653,11 @@ const app = (() => {
       return;
     }
 
-    const headers = ['地点名', '地点ID', '調査区分', '緯度', '経度', 'ファイル名キーワード', '備考'];
+    const headers = ['地点ID', '地点名', '地点名_読み', '調査区分', '緯度', '経度', 'ファイル名キーワード', '備考'];
     const rows = validStations.map(s => [
-      s.name,
       s.id,
+      s.name,
+      s.name_read || '',
       s.category,
       s.lat !== null ? s.lat : '',
       s.lon !== null ? s.lon : '',
@@ -626,16 +666,30 @@ const app = (() => {
     ]);
 
     const blob = dataProcessor.generateCSVBlob(headers, rows);
-    const now  = new Date();
-    const ts   = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+    const now = new Date();
+    const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
     _downloadBlob(blob, `地点マスタ_${ts}.csv`);
     uiController.showToast(`地点マスタ_${ts}.csv をダウンロードしました（${validStations.length}件）`, 'success');
   }
 
+  /**
+   * 地点マスタの空テンプレートをダウンロード
+   */
+  function downloadMasterTemplate() {
+    const headers = ['地点ID', '地点名', '地点名_読み', '調査区分', '緯度', '経度', 'ファイル名キーワード', '備考'];
+    const rows = [
+      ['ST001', '津久根', 'つくね', '定点', '35.6812', '139.7671', 'つくね|tsukune|tukune', '備考を入力'],
+      ['ST002', '似島', 'にのしま', '臨時', '35.6812', '139.7671', 'にのしま|ninoshima|ninosima', '備考を入力']
+    ];
+    const blob = dataProcessor.generateCSVBlob(headers, rows);
+    _downloadBlob(blob, '地点マスタ_テンプレート.csv');
+    uiController.showToast('テンプレートをダウンロードしました', 'success');
+  }
+
   function _downloadBlob(blob, fileName) {
     const url = URL.createObjectURL(blob);
-    const a   = document.createElement('a');
-    a.href     = url;
+    const a = document.createElement('a');
+    a.href = url;
     a.download = fileName;
     document.body.appendChild(a);
     a.click();
@@ -668,6 +722,7 @@ const app = (() => {
     onObsDrop,
     onObsFileSelect,
     moveCard,
+    moveCards,
     saveStationForm,
     editStation,
     deleteStation,
@@ -675,5 +730,6 @@ const app = (() => {
     addStationFromMap,
     getFileCounts,
     downloadMasterCSV,
+    downloadMasterTemplate,
   };
 })();

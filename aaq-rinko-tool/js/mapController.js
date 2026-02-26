@@ -26,10 +26,26 @@ const mapController = (() => {
       zoom: 5,
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    // 地理院地図レイヤー定義
+    const photoLayer = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+      attribution: 'Map data © <a href="https://maps.gsi.go.jp/development/ichiran.html">Geospatial Information Authority of Japan</a>',
       maxZoom: 18,
-    }).addTo(map);
+    });
+
+    const paleLayer = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
+      attribution: 'Map data © <a href="https://maps.gsi.go.jp/development/ichiran.html">Geospatial Information Authority of Japan</a>',
+      maxZoom: 18,
+    });
+
+    // デフォルトで写真レイヤーを表示
+    photoLayer.addTo(map);
+
+    // レイヤーコントロール追加
+    const baseMaps = {
+      "シームレス写真": photoLayer,
+      "淡色地図": paleLayer
+    };
+    L.control.layers(baseMaps).addTo(map);
 
     isInitialized = true;
   }
@@ -237,7 +253,7 @@ const mapController = (() => {
   // ─── ユーティリティ ───
 
   function _esc(str) {
-    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   /**

@@ -9,6 +9,7 @@ const uiController = (() => {
   // ─── ドラッグ状態 ───
   let dragCardId = null;
   let dragSourceEl = null;
+  let selectedIds = new Set();
 
   // ─── スイムレーン生成 ───
 
@@ -80,10 +81,10 @@ const uiController = (() => {
 
     const icon = card.parsed && card.parsed.warningFallback ? '⚠️' : '';
 
-    const dtStr  = card.parsed && card.parsed.firstDateTime ? card.parsed.firstDateTime : '—';
+    const dtStr = card.parsed && card.parsed.firstDateTime ? card.parsed.firstDateTime : '—';
     const depStr = card.parsed && card.parsed.maxDepth !== null ? `${card.parsed.maxDepth} m` : '—';
     const cntStr = card.parsed && card.parsed.dataRows ? `${card.parsed.dataRows.length} 件` : '—';
-    const gps    = card.parsed && card.parsed.gpsCoord;
+    const gps = card.parsed && card.parsed.gpsCoord;
     const gpsStr = gps ? `${gps.lat.toFixed(4)}°N, ${gps.lon.toFixed(4)}°E` : '—';
 
     el.innerHTML = `
@@ -97,22 +98,64 @@ const uiController = (() => {
       </div>
     `;
 
-    // カードクリック: データプレビューモーダル
+    // カードクリック: 選択ロジック（またはプレビュー）
     el.addEventListener('click', (e) => {
       if (e.target.closest('button')) return;
-      showPreviewModal(card);
+
+      const isMulti = e.ctrlKey || e.metaKey;
+      if (isMulti) {
+        // 複数選択トグル
+        if (selectedIds.has(card.id)) {
+          selectedIds.delete(card.id);
+          el.classList.remove('selected');
+        } else {
+          selectedIds.add(card.id);
+          el.classList.add('selected');
+        }
+      } else {
+        // 単一選択（既に選択されている場合はプレビューへ、そうでない場合は選択をリセットしてこれだけ選択）
+        if (selectedIds.has(card.id) && selectedIds.size === 1) {
+          showPreviewModal(card);
+        } else {
+          _clearSelection();
+          selectedIds.add(card.id);
+          el.classList.add('selected');
+          // 選択された直後はプレビューを出さないようにすることもできるが、
+          // ユーザビリティを考えて「選択済みならプレビュー」とした
+        }
+      }
     });
 
     // ドラッグ
     el.addEventListener('dragstart', (e) => {
       dragCardId = card.id;
       dragSourceEl = el.closest('.swim-drop-target, #unclassified-area');
+
+      // ドラッグ対象が選択されていない場合は、それだけを選択状態にする
+      if (!selectedIds.has(card.id)) {
+        _clearSelection();
+        selectedIds.add(card.id);
+        el.classList.add('selected');
+      }
+
+      const dragIds = Array.from(selectedIds);
       el.classList.add('dragging');
+
+      if (dragIds.length > 1) {
+        el.classList.add('dragging-multiple');
+        el.dataset.dragCount = dragIds.length;
+      }
+
       e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('application/json', JSON.stringify(dragIds));
+      // フォールバック（古いブラウザ用）
       e.dataTransfer.setData('text/plain', card.id);
     });
+
     el.addEventListener('dragend', () => {
       el.classList.remove('dragging');
+      el.classList.remove('dragging-multiple');
+      delete el.dataset.dragCount;
       dragCardId = null;
       dragSourceEl = null;
     });
@@ -163,14 +206,23 @@ const uiController = (() => {
   function onDrop(e) {
     e.preventDefault();
     e.currentTarget.classList.remove('drag-over');
-    const cardId = e.dataTransfer.getData('text/plain') || dragCardId;
-    if (!cardId) return;
+    const json = e.dataTransfer.getData('application/json');
+    const dragIds = json ? JSON.parse(json) : [e.dataTransfer.getData('text/plain') || dragCardId];
+
+    if (!dragIds || dragIds.length === 0) return;
 
     const target = e.currentTarget;
     const newStationId = target.dataset.stationId || '';
 
     // app に通知して状態更新
-    app.moveCard(cardId, newStationId);
+    if (dragIds.length > 1) {
+      app.moveCards(dragIds, newStationId);
+    } else {
+      app.moveCard(dragIds[0], newStationId);
+    }
+
+    // 移動後は選択解除
+    _clearSelection();
   }
 
   function setupDragAndDrop() {
@@ -193,7 +245,7 @@ const uiController = (() => {
    */
   function renderStationList(stations, fileCounts) {
     const container = document.getElementById('station-list');
-    const countEl   = document.getElementById('master-count');
+    const countEl = document.getElementById('master-count');
 
     const validStations = stations.filter(s => !s._invalid);
     countEl.textContent = `${validStations.length} 件`;
@@ -255,8 +307,8 @@ const uiController = (() => {
     document.getElementById('preview-modal-title').textContent = card.fileName;
 
     const container = document.getElementById('preview-table-container');
-    const headers   = card.parsed.headerRow;
-    const rows      = card.parsed.dataRows.slice(0, 500);
+    const headers = card.parsed.headerRow;
+    const rows = card.parsed.dataRows.slice(0, 500);
 
     let html = '<table><thead><tr>';
     html += headers.map(h => `<th>${_esc(h)}</th>`).join('');
@@ -294,13 +346,13 @@ const uiController = (() => {
     const modal = document.getElementById('station-form-modal');
     document.getElementById('station-form-title').textContent = station ? '地点を編集' : '地点を追加';
     document.getElementById('sf-editing-id').value = station ? station.id : '';
-    document.getElementById('sf-name').value     = station ? station.name     : '';
-    document.getElementById('sf-id').value       = station ? station.id       : _generateNextId();
+    document.getElementById('sf-name').value = station ? station.name : '';
+    document.getElementById('sf-id').value = station ? station.id : _generateNextId();
     document.getElementById('sf-category').value = station ? station.category : '定期';
-    document.getElementById('sf-lat').value      = station ? (station.lat || '') : (lat !== null ? lat.toFixed(6) : '');
-    document.getElementById('sf-lon').value      = station ? (station.lon || '') : (lon !== null ? lon.toFixed(6) : '');
+    document.getElementById('sf-lat').value = station ? (station.lat || '') : (lat !== null ? lat.toFixed(6) : '');
+    document.getElementById('sf-lon').value = station ? (station.lon || '') : (lon !== null ? lon.toFixed(6) : '');
     document.getElementById('sf-keywords').value = station ? (station.keywords || []).join('|') : '';
-    document.getElementById('sf-note').value     = station ? (station.note || '') : '';
+    document.getElementById('sf-note').value = station ? (station.note || '') : '';
     modal.classList.remove('hidden');
   }
 
@@ -344,13 +396,13 @@ const uiController = (() => {
 
   function setupModalOutsideClick() {
     // 地図モーダルはモーダル外クリックでは閉じない（×ボタンのみ）
-    document.getElementById('preview-modal').addEventListener('click', function(e) {
+    document.getElementById('preview-modal').addEventListener('click', function (e) {
       if (e.target === this) closePreviewModal();
     });
-    document.getElementById('station-form-modal').addEventListener('click', function(e) {
+    document.getElementById('station-form-modal').addEventListener('click', function (e) {
       if (e.target === this) closeStationFormModal();
     });
-    document.getElementById('confirm-dialog').addEventListener('click', function(e) {
+    document.getElementById('confirm-dialog').addEventListener('click', function (e) {
       if (e.target === this) closeConfirm();
     });
   }
@@ -404,7 +456,7 @@ const uiController = (() => {
     document.querySelectorAll('.swimlane').forEach(sl => {
       const sid = sl.dataset.stationId;
       const body = sl.querySelector('.swim-drop-target');
-      const cnt  = body ? body.querySelectorAll('.file-card').length : 0;
+      const cnt = body ? body.querySelectorAll('.file-card').length : 0;
       const badge = document.querySelector(`.swimlane-count[data-station-id="${sid}"]`);
       if (badge) badge.textContent = cnt;
       if (body) _togglePlaceholder(body, cnt);
@@ -436,9 +488,14 @@ const uiController = (() => {
     return `ST${String(max + 1).padStart(3, '0')}`;
   }
 
+  function _clearSelection() {
+    selectedIds.clear();
+    document.querySelectorAll('.file-card.selected').forEach(el => el.classList.remove('selected'));
+  }
+
   // ─── XSS対策 ───
   function _esc(str) {
-    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   // ─── 公開 API ───
