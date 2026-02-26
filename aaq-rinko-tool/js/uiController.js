@@ -10,6 +10,8 @@ const uiController = (() => {
   let dragCardId = null;
   let dragSourceEl = null;
   let selectedIds = new Set();
+  let previewMap = null;
+  let previewMarkers = [];
 
   // ─── スイムレーン生成 ───
 
@@ -325,6 +327,85 @@ const uiController = (() => {
     container.innerHTML = html;
 
     modal.classList.remove('hidden');
+
+    // ─── 地図表示 ───
+    const mapDiv = document.getElementById('preview-map');
+    const gps = card.parsed && card.parsed.gpsCoord;
+
+    if (gps) {
+      mapDiv.classList.remove('hidden');
+      _initPreviewMap(gps, app.state.stations);
+    } else {
+      mapDiv.classList.add('hidden');
+    }
+  }
+
+  function _initPreviewMap(gps, stations) {
+    if (!previewMap) {
+      previewMap = L.map('preview-map').setView([gps.lat, gps.lon], 13);
+      L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+        attribution: 'Map data © <a href="https://maps.gsi.go.jp/development/ichiran.html">Geospatial Information Authority of Japan</a>',
+        maxZoom: 18,
+      }).addTo(previewMap);
+    } else {
+      previewMap.setView([gps.lat, gps.lon], 13);
+    }
+
+    // 既存マーカーをクリア
+    previewMarkers.forEach(m => previewMap.removeLayer(m));
+    previewMarkers = [];
+
+    // 地点マスタのマーカー
+    for (const st of stations) {
+      if (st._invalid || st.lat === null || st.lon === null) continue;
+      const catColor = { 定期: '#2563EB', 臨時: '#D97706', 未設定: '#6B7280' };
+      const color = catColor[st.category] || '#6B7280';
+      const m = L.circleMarker([st.lat, st.lon], {
+        radius: 6,
+        color: 'white',
+        weight: 2,
+        fillColor: color,
+        fillOpacity: 1,
+      }).addTo(previewMap).bindPopup(`${_esc(st.name)} (${_esc(st.id)})`);
+      previewMarkers.push(m);
+    }
+
+    // 観測地点（自分自身）のマーカー
+    const selfIcon = L.divIcon({
+      className: '',
+      html: `<div style="
+        width:20px;height:20px;border-radius:50%;
+        background:#EF4444;border:3px solid white;
+        box-shadow:0 0 10px rgba(239, 68, 68, 0.6);
+        animation: pulse 1.5s infinite;
+      "></div>`,
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
+    });
+
+    // スタイルタグを追加（pulseアニメーション用）
+    if (!document.getElementById('preview-map-styles')) {
+      const style = document.createElement('style');
+      style.id = 'preview-map-styles';
+      style.innerHTML = `
+        @keyframes pulse {
+          0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+          70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+          100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    const mSelf = L.marker([gps.lat, gps.lon], { icon: selfIcon })
+      .addTo(previewMap)
+      .bindPopup('このファイルの観測位置');
+    previewMarkers.push(mSelf);
+
+    // DOMへの反映を待ってリサイズ
+    setTimeout(() => {
+      previewMap.invalidateSize();
+    }, 100);
   }
 
   /**
@@ -332,6 +413,7 @@ const uiController = (() => {
    */
   function closePreviewModal() {
     document.getElementById('preview-modal').classList.add('hidden');
+    // 必要なら地図の状態をリセット
   }
 
   // ─── 地点フォームモーダル ───
