@@ -33,6 +33,16 @@ const app = (() => {
       el.addEventListener('drop', () => el.classList.remove('drag-over'));
     });
 
+    // ─── ブラウザ更新/終了時の警告 ───
+    window.addEventListener('beforeunload', (e) => {
+      // 地点マスタが読み込まれているか、または観測データが1つでもある場合に警告を出す
+      const hasData = state.stations.length > 0 || state.cards.size > 0;
+      if (hasData) {
+        e.preventDefault();
+        e.returnValue = ''; // ブラウザ標準の警告を表示
+      }
+    });
+
     uiController.setupModalOutsideClick();
     uiController.setupDragAndDrop();
   }

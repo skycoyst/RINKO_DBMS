@@ -229,7 +229,7 @@ const dataProcessor = (() => {
 
       const headers = parsed.headerRow;
       const depthIdx = headers.findIndex(h => h.includes('深度') || h.toLowerCase().includes('depth'));
-      const dtIdx    = headers.findIndex(h => h.includes('観測日時') || h.toLowerCase().includes('date'));
+      const dtIdx = headers.findIndex(h => h.includes('観測日時') || h.toLowerCase().includes('date'));
 
       // GPS 座標列インデックス検索（緯度経度含む列名）
       const gpsLatIdx = headers.findIndex(h => /緯度|lat/i.test(h));
@@ -266,7 +266,7 @@ const dataProcessor = (() => {
 
         const dataPart = unionCols.map(col => {
           const isDateLike = headers.indexOf(col) === dtIdx;
-          const isGpsLike  = headers.indexOf(col) === gpsLatIdx || headers.indexOf(col) === gpsLonIdx;
+          const isGpsLike = headers.indexOf(col) === gpsLatIdx || headers.indexOf(col) === gpsLonIdx;
 
           if (isDateLike || isGpsLike) {
             // 先頭値
@@ -376,9 +376,9 @@ const dataProcessor = (() => {
   function generateOutputFileName(format) {
     const now = new Date();
     const pad2 = n => String(n).padStart(2, '0');
-    const ts = `${now.getFullYear()}${pad2(now.getMonth()+1)}${pad2(now.getDate())}_${pad2(now.getHours())}${pad2(now.getMinutes())}`;
-    if (format === 'A') return `結合済み観測データ_生データ_${ts}.csv`;
-    return `結合済み観測データ_水深区分別平均_${ts}.csv`;
+    const ts = `${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}_${pad2(now.getHours())}${pad2(now.getMinutes())}`;
+    if (format === 'A') return `結合_生データ_${ts}.csv`;
+    return `結合_水深平均_${ts}.csv`;
   }
 
   // ─── 公開 API ───
