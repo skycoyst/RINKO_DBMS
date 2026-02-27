@@ -247,7 +247,42 @@ const app = (() => {
       return;
     }
 
-    // 同名なし → 新規登録
+    // ─── 同観測開始時刻チェック（ファイル名が違っても同じ観測なら粒度比較）───
+    const newMs = _parseDateTimeMs(parsed.firstDateTime);
+    if (newMs !== null) {
+      const sameDtCard = [...state.cards.values()].find(c => {
+        if (c.fileName === file.name) return false; // 同名は上で処理済み
+        const existMs = _parseDateTimeMs((c.parsed && c.parsed.firstDateTime) || null);
+        return existMs !== null && existMs === newMs;
+      });
+
+      if (sameDtCard) {
+        const newRes = _calcDepthResolution(parsed);
+        const existRes = _calcDepthResolution(sameDtCard.parsed);
+
+        if (newRes < existRes) {
+          // 新しいファイルの方が水深粒度が細かい → 既存を置き換え
+          const savedStationId = sameDtCard.stationId;
+          _removeCardState(sameDtCard.id);
+          uiController.removeCard(sameDtCard.id);
+          const newCard = await _registerParsedCard(file.name, parsed);
+          if (newCard && savedStationId !== '') moveCard(newCard.id, savedStationId);
+          uiController.showToast(
+            `同観測・高粒度ファイルで置き換え: ${file.name}（${sameDtCard.fileName} を排除）`,
+            'info', 5000
+          );
+        } else {
+          // 既存の方が粒度が細かい（または同じ）→ 新しいファイルを排除
+          uiController.showToast(
+            `同観測・低粒度のため排除: ${file.name}（${sameDtCard.fileName} を優先）`,
+            'info', 5000
+          );
+        }
+        return;
+      }
+    }
+
+    // 同名なし・同観測日時なし → 新規登録
     await _registerParsedCard(file.name, parsed);
   }
 
@@ -331,6 +366,35 @@ const app = (() => {
       const st = state.stations.find(s => s.id === stationId);
       if (st) mapController.refreshMarkerPopup(stationId, st, getFileCounts().get(stationId) || 0);
     }
+  }
+
+  // ─── 水深粒度チェック用ヘルパー ───
+
+  /**
+   * 日時文字列を ms に変換（表記ゆれを吸収）
+   * "2018/06/14 8:42:18" / "2018/06/14 08:42:18" などに対応
+   * @param {string|null} dtStr
+   * @returns {number|null}
+   */
+  function _parseDateTimeMs(dtStr) {
+    if (!dtStr) return null;
+    const m = dtStr.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\s+(\d{1,2}):(\d{2}):(\d{2})/);
+    if (!m) return null;
+    return Date.UTC(
+      parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]),
+      parseInt(m[4]), parseInt(m[5]), parseInt(m[6])
+    );
+  }
+
+  /**
+   * 水深粒度を計算（maxDepth / データ行数）
+   * 値が小さいほど細かい粒度
+   * @param {object} parsed
+   * @returns {number} Infinity = 計算不可
+   */
+  function _calcDepthResolution(parsed) {
+    if (!parsed || !parsed.maxDepth || !parsed.dataRows || parsed.dataRows.length === 0) return Infinity;
+    return parsed.maxDepth / parsed.dataRows.length;
   }
 
   // ─── 自動仕分け ───

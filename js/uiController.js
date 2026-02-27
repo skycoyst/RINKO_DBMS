@@ -382,32 +382,71 @@ const uiController = (() => {
     `;
     toolsContainer.appendChild(addBtn);
 
-    // ─── 地点一覧 (scrollable list) ───
+    // ─── 地点一覧 (scrollable list with tree structure) ───
+    const grouped = new Map();
     for (const st of validStations) {
-      const fc = fileCounts ? (fileCounts.get(st.id) || 0) : 0;
-      const hasSwimlane = swimlaneIds && swimlaneIds.has(st.id);
-      const item = document.createElement('div');
-      item.className = 'station-item';
-      item.dataset.stationId = st.id;
+      if (!grouped.has(st.category)) grouped.set(st.category, []);
+      grouped.get(st.category).push(st);
+    }
 
-      item.innerHTML = `
-        <div class="station-info">
-          <span class="station-link"
-            onclick="mapController.openMapModal('${_esc(st.id)}', app.state.stations, app.getFileCounts())">
-            ${_esc(st.name)}
-          </span>
-          <span class="cat-${_esc(st.category)} badge-spaced">${_esc(st.category)}</span>
-          <div class="station-meta">${_esc(st.id)} &nbsp;|&nbsp; ${fc} ファイル</div>
-        </div>
-        <div class="station-actions">
-          ${hasSwimlane
-          ? `<span class="swimlane-added-badge" title="スイムレーン追加済み">✓</span>`
-          : `<button class="btn-primary btn-sm" onclick="app.addSwimlane('${_esc(st.id)}')" title="スイムレーンに追加">＋</button>`
-        }
-          <button class="btn-secondary btn-sm" onclick="app.editStation('${_esc(st.id)}')">編集</button>
-        </div>
+    // カテゴリ順に並び替え（指定順: 定点 > 臨時 > 個別対応 > 未設定）
+    const priority = ['定点', '臨時', '個別対応', '未設定'];
+    const categories = Array.from(grouped.keys()).sort((a, b) => {
+      const idxA = priority.indexOf(a);
+      const idxB = priority.indexOf(b);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return a.localeCompare(b);
+    });
+
+    for (const cat of categories) {
+      const sts = grouped.get(cat);
+      const catGroup = document.createElement('div');
+      catGroup.className = 'station-category-group';
+      // デフォルトでは閉じているが、何かあれば開くなどの調整も可能
+      // catGroup.classList.add('open'); 
+
+      const header = document.createElement('div');
+      header.className = 'station-category-header';
+      header.onclick = () => catGroup.classList.toggle('open');
+      header.innerHTML = `
+        <span class="station-category-icon">▶</span>
+        <span class="station-category-label">${_esc(cat)}</span>
+        <span class="station-category-count">${sts.length}</span>
       `;
-      listContainer.appendChild(item);
+      catGroup.appendChild(header);
+
+      const nodes = document.createElement('div');
+      nodes.className = 'station-category-nodes';
+
+      for (const st of sts) {
+        const fc = fileCounts ? (fileCounts.get(st.id) || 0) : 0;
+        const hasSwimlane = swimlaneIds && swimlaneIds.has(st.id);
+        const item = document.createElement('div');
+        item.className = 'station-item';
+        item.dataset.stationId = st.id;
+
+        item.innerHTML = `
+          <div class="station-info">
+            <span class="station-link"
+              onclick="mapController.openMapModal('${_esc(st.id)}', app.state.stations, app.getFileCounts())">
+              ${_esc(st.name)}
+            </span>
+            <div class="station-meta">${_esc(st.id)} &nbsp;|&nbsp; ${fc} ファイル</div>
+          </div>
+          <div class="station-actions">
+            ${hasSwimlane
+            ? `<span class="swimlane-added-badge" title="スイムレーン追加済み">✓</span>`
+            : `<button class="btn-primary btn-sm" onclick="app.addSwimlane('${_esc(st.id)}')" title="スイムレーンに追加">＋</button>`
+          }
+            <button class="btn-secondary btn-sm" onclick="app.editStation('${_esc(st.id)}')">編集</button>
+          </div>
+        `;
+        nodes.appendChild(item);
+      }
+      catGroup.appendChild(nodes);
+      listContainer.appendChild(catGroup);
     }
   }
 

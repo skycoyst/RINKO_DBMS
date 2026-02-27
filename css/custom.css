@@ -669,3 +669,69 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #aaa;
 }
+
+/* ---- 地点ツリー構造 ---- */
+.station-category-group {
+  margin-bottom: 2px;
+}
+
+.station-category-header {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  background-color: #f3f4f6;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  transition: background-color 0.15s;
+  margin-bottom: 1px;
+}
+
+.station-category-header:hover {
+  background-color: #e5e7eb;
+}
+
+.station-category-icon {
+  margin-right: 6px;
+  font-size: 10px;
+  transition: transform 0.2s;
+  width: 12px;
+  text-align: center;
+}
+
+.station-category-group.open .station-category-icon {
+  transform: rotate(90deg);
+}
+
+.station-category-label {
+  flex: 1;
+}
+
+.station-category-count {
+  font-size: 0.7rem;
+  font-weight: normal;
+  color: #6b7280;
+  background: white;
+  padding: 0 5px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.station-category-nodes {
+  display: none;
+  padding-left: 8px;
+}
+
+.station-category-group.open .station-category-nodes {
+  display: block;
+}
+
+/* ツリー内のアイテムは少しコンパクトに */
+.station-category-nodes .station-item {
+  padding: 4px 4px 4px 8px;
+  border-left: 2px solid #e5e7eb;
+  margin-left: 5px;
+}

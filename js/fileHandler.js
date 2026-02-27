@@ -7,6 +7,16 @@
 const fileHandler = (() => {
 
   /**
+   * 列名エイリアスマッピング
+   * 異なるソフトウェア・機種間で表記が異なる列名を統一する
+   */
+  const COLUMN_ALIASES = {
+    '塩分 [ ]'        : '塩分',
+    'Density [kg/m^3]': '密度 [kg/m3]',
+    '濁度相当値 [FTU]' : '濁度 [FTU]',
+  };
+
+  /**
    * BOM / エンコーディング検出
    * @param {Uint8Array} bytes
    * @returns {string} 'UTF-8' | 'SJIS'
@@ -186,6 +196,7 @@ const fileHandler = (() => {
         sampleCnt: null,
         startPosition: null,   // { lat, lon } 十進数
         endPosition: null,
+        startTime: null,        // StartTime= の値（観測日時補完用）
       },
       firstDateTime: null,
       maxDepth: null,
@@ -201,6 +212,10 @@ const fileHandler = (() => {
       const scMatch = line.match(/^SampleCnt=(\d+)/i);
       if (scMatch) result.metadata.sampleCnt = parseInt(scMatch[1], 10);
 
+      // StartTime=2026/02/03 14:05:16
+      const stMatch = line.match(/^StartTime=(.+)/i);
+      if (stMatch) result.metadata.startTime = stMatch[1].trim();
+
       // StartPosition=3419.09130,N,13226.93637,E
       const spMatch = line.match(/^StartPosition=(.+)/i);
       if (spMatch) {
@@ -213,7 +228,8 @@ const fileHandler = (() => {
 
     // 優先1: [Item] の直後の行
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].trim() === '[Item]') {
+      const line = lines[i].trim();
+      if (line === '[Item]' || line.startsWith('[Item],')) {
         headerIdx = i + 1;
         break;
       }
@@ -241,7 +257,8 @@ const fileHandler = (() => {
     }
 
     result.headerRowIndex = headerIdx;
-    result.headerRow = parseCsvLine(lines[headerIdx]);
+    // 列名エイリアスを適用して正規化
+    result.headerRow = parseCsvLine(lines[headerIdx]).map(h => COLUMN_ALIASES[h] || h);
 
     // ─── データ行収集 ───
     const dataRows = [];
@@ -258,24 +275,47 @@ const fileHandler = (() => {
 
     result.dataRows = dataRows;
 
+    // ─── 観測日時列がない場合は StartTime で補完 ───
+    const hasDtCol = result.headerRow.some(h => h.includes('観測日時') || h.toLowerCase().includes('date'));
+    if (!hasDtCol && result.metadata.startTime) {
+      result.headerRow.unshift('観測日時');
+      result.dataRows = result.dataRows.map(row => [result.metadata.startTime, ...row]);
+    }
+
     // ─── 派生情報の抽出 ───
     const headers = result.headerRow;
     const dtIdx = headers.findIndex(h => h.includes('観測日時') || h.toLowerCase().includes('date'));
     const depthIdx = headers.findIndex(h => h.includes('深度') || h.includes('depth'));
 
-    // 観測日時（先頭行）
-    if (dtIdx >= 0 && dataRows[0][dtIdx]) {
-      result.firstDateTime = dataRows[0][dtIdx];
+    // 観測日時（先頭行）- 補完後の result.dataRows を参照
+    if (dtIdx >= 0 && result.dataRows[0] && result.dataRows[0][dtIdx]) {
+      result.firstDateTime = result.dataRows[0][dtIdx];
     }
 
-    // 最大水深
+    // 最大水深 - 補完後の result.dataRows を参照（インデックスがズレるため）
     if (depthIdx >= 0) {
       let maxD = -Infinity;
-      for (const row of dataRows) {
+      for (const row of result.dataRows) {
         const v = parseFloat(row[depthIdx]);
         if (!isNaN(v) && v > maxD) maxD = v;
       }
       if (maxD > -Infinity) result.maxDepth = maxD;
+    }
+
+    // ─── 観測日時を日付・時刻の2列に分割 ───
+    // firstDateTime・最大水深の計算が終わった後に実施（depthIdx のズレ防止）
+    const dtSplitIdx = result.headerRow.findIndex(h => h === '観測日時');
+    if (dtSplitIdx >= 0) {
+      result.headerRow.splice(dtSplitIdx, 1, '観測日付', '観測時刻');
+      result.dataRows = result.dataRows.map(row => {
+        const dtVal = row[dtSplitIdx] || '';
+        const parts = dtVal.trim().split(/\s+/);
+        const date = parts[0] || '';
+        const time = parts[1] || '';
+        const newRow = [...row];
+        newRow.splice(dtSplitIdx, 1, date, time);
+        return newRow;
+      });
     }
 
     // GPS 座標
