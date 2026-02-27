@@ -487,6 +487,44 @@ const app = (() => {
   }
 
   /**
+   * 地図上でドラッグして座標を取得
+   * 地点フォームモーダルを一時的に隠し、地図モーダルで座標ピックモードを有効化する
+   */
+  function openMapForCoordPick() {
+    // 現在のフォーム値を初期位置として使用
+    const latVal = parseFloat(document.getElementById('sf-lat').value);
+    const lonVal = parseFloat(document.getElementById('sf-lon').value);
+    const initLat = isNaN(latVal) ? null : latVal;
+    const initLon = isNaN(lonVal) ? null : lonVal;
+
+    // 地点フォームモーダルを一時的に隠す
+    document.getElementById('station-form-modal').classList.add('hidden');
+
+    // 地図モーダルを開く
+    const mapModal = document.getElementById('map-modal');
+    mapModal.classList.remove('hidden');
+    mapController.initMap();
+
+    setTimeout(() => {
+      mapController.displayAllLocations(state.stations, getFileCounts());
+
+      mapController.enableCoordPickMode(initLat, initLon, (lat, lng) => {
+        // 座標ピック完了（確定 or キャンセル）
+        // 地図モーダルを閉じ、地点フォームを再表示
+        document.getElementById('map-modal').classList.add('hidden');
+        document.getElementById('station-form-modal').classList.remove('hidden');
+
+        if (lat !== null && lng !== null) {
+          // 小数7桁で丸める（GPS精度として十分）
+          document.getElementById('sf-lat').value = Math.round(lat * 1e7) / 1e7;
+          document.getElementById('sf-lon').value = Math.round(lng * 1e7) / 1e7;
+          uiController.showToast('座標を取得しました', 'success');
+        }
+      });
+    }, 200);
+  }
+
+  /**
    * 地点を編集
    * @param {string} stationId
    */
@@ -927,5 +965,6 @@ const app = (() => {
     addSwimlanesByTemplate,
     addAllSwimlanes,
     autoAssignUnclassified,
+    openMapForCoordPick,
   };
 })();

@@ -13,6 +13,12 @@ const mapController = (() => {
   let addPointMode = false;
   let addPointCallback = null;
 
+  // 座標ピックモード
+  let coordPickMode = false;
+  let coordPickMarker = null;
+  let coordPickCallback = null;
+  let coordPickControl = null;
+
   // ─── 初期化 ───
 
   /**
@@ -92,6 +98,13 @@ const mapController = (() => {
    */
   function closeMapModal() {
     document.getElementById('map-modal').classList.add('hidden');
+    // 座標ピックモード中に×で閉じた場合はキャンセル扱い
+    if (coordPickMode) {
+      const cb = coordPickCallback;
+      _disableCoordPickMode();
+      if (cb) cb(null, null);
+      return;
+    }
     // 地点追加モード解除
     if (addPointMode) disableAddPointMode();
   }
@@ -250,6 +263,148 @@ const mapController = (() => {
     }
   }
 
+  // ─── 座標ピックモード ───
+
+  /**
+   * 地図上でドラッグして座標を取得するモードを有効化
+   * ドラッグ可能なマーカーと確定/キャンセルパネルを表示する
+   * @param {number|null} initialLat  初期緯度
+   * @param {number|null} initialLon  初期経度
+   * @param {function} callback  (lat, lon) => void  ※ キャンセル時は (null, null)
+   */
+  function enableCoordPickMode(initialLat, initialLon, callback) {
+    if (!map) return;
+
+    // モーダル表示直後のタイルズレを補正
+    map.invalidateSize();
+
+    coordPickMode = true;
+    coordPickCallback = callback;
+
+    const lat = (initialLat !== null && initialLat !== undefined && !isNaN(initialLat))
+      ? initialLat : map.getCenter().lat;
+    const lon = (initialLon !== null && initialLon !== undefined && !isNaN(initialLon))
+      ? initialLon : map.getCenter().lng;
+
+    // ドラッグ可能マーカー（黄色ピンスタイル）
+    const pickIcon = L.divIcon({
+      className: '',
+      html: `<div style="
+        width:32px;height:40px;position:relative;cursor:grab;
+      ">
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 40' width='32' height='40'>
+          <ellipse cx='16' cy='38' rx='6' ry='2.5' fill='rgba(0,0,0,0.25)'/>
+          <circle cx='16' cy='16' r='14' fill='#F59E0B' stroke='white' stroke-width='2.5'/>
+          <circle cx='16' cy='16' r='5' fill='white' opacity='0.9'/>
+          <line x1='16' y1='30' x2='16' y2='38' stroke='#F59E0B' stroke-width='3'/>
+        </svg>
+      </div>`,
+      iconSize: [32, 40],
+      iconAnchor: [16, 38],
+    });
+
+    coordPickMarker = L.marker([lat, lon], { icon: pickIcon, draggable: true }).addTo(map);
+    map.flyTo([lat, lon], Math.max(map.getZoom(), 13), { duration: 0.6 });
+
+    // ドラッグ中: 座標表示を更新
+    coordPickMarker.on('drag', (e) => {
+      _updateCoordPickDisplay(e.latlng.lat, e.latlng.lng);
+    });
+    coordPickMarker.on('dragend', () => {
+      const ll = coordPickMarker.getLatLng();
+      _updateCoordPickDisplay(ll.lat, ll.lng);
+    });
+
+    // コントロールパネルを追加
+    _createCoordPickControl(lat, lon);
+  }
+
+  /**
+   * 座標ピック用コントロールパネルを地図に追加
+   */
+  function _createCoordPickControl(lat, lon) {
+    if (coordPickControl) {
+      coordPickControl.remove();
+      coordPickControl = null;
+    }
+
+    const CoordPickControl = L.Control.extend({
+      onAdd: function () {
+        const div = L.DomUtil.create('div', '');
+        div.innerHTML = `
+          <div id="coord-pick-panel" style="
+            background:white;border-radius:8px;padding:10px 14px;
+            box-shadow:0 2px 14px rgba(0,0,0,0.35);
+            display:flex;align-items:center;gap:10px;font-size:13px;
+            pointer-events:all;border:2px solid #F59E0B;
+          ">
+            <span style="font-size:18px;">📍</span>
+            <span style="color:#374151;white-space:nowrap;">マーカーをドラッグして位置を指定</span>
+            <span id="coord-pick-display" style="
+              font-family:monospace;color:#2563EB;min-width:230px;font-size:12px;
+            ">${lat.toFixed(6)}, ${lon.toFixed(6)}</span>
+            <button id="coord-pick-confirm" style="
+              background:#2563EB;color:white;border:none;border-radius:4px;
+              padding:5px 16px;font-size:13px;cursor:pointer;font-weight:bold;white-space:nowrap;
+            ">✔ 確定</button>
+            <button id="coord-pick-cancel" style="
+              background:#6B7280;color:white;border:none;border-radius:4px;
+              padding:5px 12px;font-size:13px;cursor:pointer;white-space:nowrap;
+            ">キャンセル</button>
+          </div>
+        `;
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
+        return div;
+      },
+    });
+
+    coordPickControl = new CoordPickControl({ position: 'topleft' });
+    coordPickControl.addTo(map);
+
+    // ボタンイベント（DOM 追加後に登録）
+    setTimeout(() => {
+      const confirmBtn = document.getElementById('coord-pick-confirm');
+      const cancelBtn  = document.getElementById('coord-pick-cancel');
+
+      if (confirmBtn) {
+        L.DomEvent.on(confirmBtn, 'click', () => {
+          const ll = coordPickMarker ? coordPickMarker.getLatLng() : null;
+          const cb = coordPickCallback;
+          _disableCoordPickMode();
+          if (cb && ll) cb(ll.lat, ll.lng);
+        });
+      }
+      if (cancelBtn) {
+        L.DomEvent.on(cancelBtn, 'click', () => {
+          const cb = coordPickCallback;
+          _disableCoordPickMode();
+          if (cb) cb(null, null);
+        });
+      }
+    }, 50);
+  }
+
+  /** 座標表示テキストを更新 */
+  function _updateCoordPickDisplay(lat, lng) {
+    const el = document.getElementById('coord-pick-display');
+    if (el) el.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  }
+
+  /** 座標ピックモードを解除し、マーカーとパネルを削除 */
+  function _disableCoordPickMode() {
+    coordPickMode = false;
+    coordPickCallback = null;
+    if (coordPickMarker) {
+      map.removeLayer(coordPickMarker);
+      coordPickMarker = null;
+    }
+    if (coordPickControl) {
+      coordPickControl.remove();
+      coordPickControl = null;
+    }
+  }
+
   // ─── ユーティリティ ───
 
   function _esc(str) {
@@ -280,5 +435,6 @@ const mapController = (() => {
     refreshMarkerPopup,
     enableAddPointMode,
     disableAddPointMode,
+    enableCoordPickMode,
   };
 })();

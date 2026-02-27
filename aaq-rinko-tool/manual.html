@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AAQ-RINKO CSV 仕分け・結合ツール マニュアル v3.2</title>
+  <style>
+    @page {
+      margin: 2cm;
+      size: A4;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.8;
+      color: #333;
+      background: #f9f9f9;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      border-bottom: 3px solid #2563EB;
+      padding-bottom: 15px;
+      color: #1e40af;
+      font-size: 28px;
+    }
+    h2 {
+      border-left: 4px solid #2563EB;
+      padding-left: 15px;
+      margin-top: 35px;
+      color: #1e40af;
+      font-size: 22px;
+    }
+    h3 {
+      color: #2563EB;
+      font-size: 16px;
+      margin-top: 20px;
+    }
+    .info-box {
+      background: #EFF6FF;
+      border-left: 4px solid #2563EB;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .warning-box {
+      background: #FEF3C7;
+      border-left: 4px solid #F59E0B;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .step-box {
+      background: #F0FDF4;
+      border-left: 4px solid #10B981;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+    }
+    .toc {
+      background: #F3F4F6;
+      border: 1px solid #D1D5DB;
+      padding: 20px;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    .toc ol {
+      margin: 10px 0;
+      padding-left: 25px;
+    }
+    .toc li {
+      margin: 8px 0;
+    }
+    .toc a {
+      color: #2563EB;
+      text-decoration: none;
+    }
+    .toc a:hover {
+      text-decoration: underline;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+    table th {
+      background: #2563EB;
+      color: white;
+      padding: 12px;
+      text-align: left;
+    }
+    table td {
+      border: 1px solid #E5E7EB;
+      padding: 12px;
+    }
+    table tr:nth-child(even) {
+      background: #F9FAFB;
+    }
+    .qa-item {
+      margin: 20px 0;
+      padding: 15px;
+      background: #F9FAFB;
+      border-radius: 4px;
+      border: 1px solid #E5E7EB;
+    }
+    .qa-item .question {
+      font-weight: bold;
+      color: #2563EB;
+      margin-bottom: 8px;
+    }
+    .qa-item .answer {
+      color: #666;
+      margin-left: 10px;
+    }
+    .version-info {
+      text-align: center;
+      color: #999;
+      margin: 30px 0 50px;
+      font-size: 14px;
+    }
+    .highlight {
+      background-color: #FEF08A;
+      padding: 2px 4px;
+      border-radius: 2px;
+    }
+    code {
+      background: #F3F4F6;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+    .page-break {
+      page-break-after: always;
+    }
+    ul, ol {
+      margin: 15px 0;
+      padding-left: 25px;
+    }
+    li {
+      margin: 8px 0;
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .feature-card {
+      background: #F0FDF4;
+      border: 1px solid #10B981;
+      padding: 15px;
+      border-radius: 4px;
+    }
+    .feature-card h4 {
+      color: #10B981;
+      margin: 0 0 8px;
+    }
+    @media print {
+      body { background: white; }
+      .container { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- タイトルページ -->
+    <h1>📊 AAQ-RINKO CSV 仕分け・結合ツール</h1>
+    <div class="version-info">
+      <p><strong>バージョン 3.2</strong></p>
+      <p>観測データの自動仕分け・統合・水深区分別平均値計算ツール</p>
+      <p>最終更新: 2026年2月</p>
+    </div>
+
+    <!-- 目次 -->
+    <div class="toc">
+      <h3 style="margin-top: 0;">📑 目次</h3>
+      <ol>
+        <li><a href="#overview">概要</a></li>
+        <li><a href="#features">主な機能</a></li>
+        <li><a href="#getting-started">クイックスタート</a></li>
+        <li><a href="#master-setup">地点マスタの準備</a></li>
+        <li><a href="#data-loading">観測データの読み込み</a></li>
+        <li><a href="#swimlane-management">スイムレーン管理</a></li>
+        <li><a href="#station-management">地点の編集と地図での座標設定</a></li>
+        <li><a href="#output">CSV出力</a></li>
+        <li><a href="#faq">よくある質問（Q&A）</a></li>
+        <li><a href="#troubleshooting">トラブルシューティング</a></li>
+      </ol>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- 1. 概要 -->
+    <h2 id="overview">1. 概要</h2>
+    <p>
+      <strong>AAQ-RINKO CSV 仕分け・結合ツール</strong>は、複数の観測データCSVファイルを以下の機能で効率的に処理するWebアプリケーションです：
+    </p>
+    <ul>
+      <li>📍 <strong>自動仕分け</strong>：ファイル名から地点を自動判定し、該当する「スイムレーン」に分類</li>
+      <li>🔄 <strong>カンバン形式UI</strong>：地点ごとのスイムレーンを視覚的に管理、ドラッグ&ドロップで移動可能</li>
+      <li>🗺️ <strong>地図ベース座標管理</strong>：地点の緯度経度を地図上でピンをドラッグして直感的に設定</li>
+      <li>📊 <strong>複数フォーマット出力</strong>：生データ統合（形式A）または水深区分別平均値計算（形式B）</li>
+      <li>🌊 <strong>水深区分処理</strong>：自動的に深度を0.5m単位で区分し、B-1mフラグを付与</li>
+    </ul>
+
+    <!-- 2. 主な機能 -->
+    <h2 id="features">2. 主な機能</h2>
+
+    <h3>2.1 地点マスタ管理</h3>
+    <div class="info-box">
+      <strong>地点マスタCSVの読み込み・編集・ダウンロード</strong><br>
+      地点ID、地点名、座標、キーワードなどを一元管理します。複数の「テンプレート」を設定して、地点を一括スイムレーン化可能。
+    </div>
+
+    <h3>2.2 観測データの自動仕分け</h3>
+    <div class="step-box">
+      <strong>ステップ1：キーワード照合</strong><br>
+      ファイル名を正規化し、地点マスタのキーワードと照合<br><br>
+      <strong>ステップ2：スマート判定</strong><br>
+      • 英数字キーワード：スペース区切りの<span class="highlight">完全単語一致</span>（例：「eta」は「etanaka」にマッチしない）<br>
+      • 日本語キーワード：<span class="highlight">部分一致</span>（従来通り）<br><br>
+      <strong>ステップ3：分類結果</strong><br>
+      一意マッチ → スイムレーンへ自動配置 | 未分類 → 「未分類」エリアへ
+    </div>
+
+    <h3>2.3 スイムレーン（カンバン形式）管理</h3>
+    <p>
+      ユーザーが<strong>手動で選択した地点</strong>のみがスイムレーン化されます：
+    </p>
+    <ul>
+      <li>🖱️ <strong>単一追加</strong>：地点一覧の「＋」ボタンで任意の地点を追加</li>
+      <li>📋 <strong>テンプレート一括追加</strong>：テンプレート値ごとに複数地点を一括追加</li>
+      <li>📍 <strong>全て追加</strong>：「全て」ボタンで全地点をスイムレーン化</li>
+      <li>🔄 <strong>ドラッグ&ドロップ</strong>：カード（ファイル）をスイムレーン間で移動</li>
+    </ul>
+
+    <h3>2.4 地図でのピン座標設定</h3>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h4>✏️ 地点編集時</h4>
+        <p>フォームの「🗺 地図でピンをドラッグして座標を取得」ボタンから地図を起動</p>
+      </div>
+      <div class="feature-card">
+        <h4>📍 ピンをドラッグ</h4>
+        <p>黄色のピンを目的地に移動、座標がリアルタイム表示</p>
+      </div>
+      <div class="feature-card">
+        <h4>✔️ 確定</h4>
+        <p>「確定」ボタンで座標をフォームに反映</p>
+      </div>
+      <div class="feature-card">
+        <h4>⏮️ キャンセル</h4>
+        <p>×ボタンで変更なく戻る</p>
+      </div>
+    </div>
+
+    <h3>2.5 水深区分と B-1m フラグ</h3>
+    <p>
+      自動計算される特別な列：
+    </p>
+    <table>
+      <tr>
+        <th>列名</th>
+        <th>説明</th>
+        <th>計算方法</th>
+      </tr>
+      <tr>
+        <td><code>水深区分</code></td>
+        <td>深度を0.5m単位に切り捨て</td>
+        <td><code>Math.floor(深度 / 0.5) × 0.5</code></td>
+      </tr>
+      <tr>
+        <td><code>B-1mフラグ</code></td>
+        <td>最大水深から1.0m浅い区分を1で標示</td>
+        <td>最大水深 ≥ 1.0m かつ 該当区分 → 1 | それ以外 → 0</td>
+      </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <!-- 3. クイックスタート -->
+    <h2 id="getting-started">3. クイックスタート（5分で使い始める）</h2>
+
+    <div class="step-box">
+      <h3>ステップ 1：地点マスタを準備</h3>
+      <p>
+        左側の「地点マスタCSVをドロップ」エリアに地点マスタCSVをドロップ、または「ファイルを選択」でアップロード。
+      </p>
+      <p style="color: #666; font-size: 13px;">
+        📝 <strong>必須カラム：</strong> 地点ID, 地点名, 調査区分<br>
+        💾 <strong>対応エンコーディング：</strong> Shift_JIS, UTF-8 (BOM自動判定)
+      </p>
+    </div>
+
+    <div class="step-box">
+      <h3>ステップ 2：観測データを読み込み</h3>
+      <p>
+        右側の「観測データCSVをドロップ」エリアに複数のCSVをドロップ、または「ファイルを選択」（複数対応）。
+      </p>
+      <p style="color: #666; font-size: 13px;">
+        📝 <strong>対応フォーマット：</strong> Shift_JIS CSV（複数ファイル可）<br>
+        ⚠️ <strong>同名同日時ファイル：</strong> 上書き確認ダイアログが表示
+      </p>
+    </div>
+
+    <div class="step-box">
+      <h3>ステップ 3：スイムレーンを追加</h3>
+      <p>
+        左側「地点一覧」のテンプレート一括追加ボタン（青色）から、目的のテンプレートを選択して一括追加、または地点ごとに「＋」で追加。
+      </p>
+    </div>
+
+    <div class="step-box">
+      <h3>ステップ 4：自動仕分け・手動調整</h3>
+      <p>
+        「再分類」ボタンで未分類ファイルを自動仕分け。必要に応じてドラッグ&ドロップで手動調整。
+      </p>
+    </div>
+
+    <div class="step-box">
+      <h3>ステップ 5：CSV出力</h3>
+      <p>
+        ヘッダーの「形式A出力」または「形式B出力」ボタンをクリック → 確認ダイアログ → ダウンロード完了。
+      </p>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- 4. 地点マスタの準備 -->
+    <h2 id="master-setup">4. 地点マスタの準備</h2>
+
+    <h3>4.1 地点マスタCSVのカラム構成</h3>
+    <table>
+      <tr>
+        <th>カラム名</th>
+        <th>必須</th>
+        <th>説明</th>
+        <th>例</th>
+      </tr>
+      <tr>
+        <td><code>地点ID</code></td>
+        <td>✓ 必須</td>
+        <td>地点の一意識別子</td>
+        <td>ST001, ST_ABC</td>
+      </tr>
+      <tr>
+        <td><code>地点名</code></td>
+        <td>✓ 必須</td>
+        <td>地点の表示名</td>
+        <td>津久根, 似島</td>
+      </tr>
+      <tr>
+        <td><code>地点名_読み</code></td>
+        <td>オプション</td>
+        <td>地点名の読み（検索用）</td>
+        <td>つくね, にのしま</td>
+      </tr>
+      <tr>
+        <td><code>調査区分</code></td>
+        <td>✓ 必須</td>
+        <td>調査の種別</td>
+        <td>定点, 臨時, 未設定</td>
+      </tr>
+      <tr>
+        <td><code>テンプレート</code></td>
+        <td>オプション</td>
+        <td>一括追加用タグ（スラッシュ区切り）</td>
+        <td>広島湾調査/溶存酸素</td>
+      </tr>
+      <tr>
+        <td><code>緯度</code></td>
+        <td>オプション</td>
+        <td>地点の緯度（十進数）</td>
+        <td>34.318, 35.6812</td>
+      </tr>
+      <tr>
+        <td><code>経度</code></td>
+        <td>オプション</td>
+        <td>地点の経度（十進数）</td>
+        <td>132.449, 139.7671</td>
+      </tr>
+      <tr>
+        <td><code>ファイル名キーワード</code></td>
+        <td>オプション</td>
+        <td>ファイル名マッチ用キーワード（パイプ区切り）</td>
+        <td>つくね|tsukune|tukune</td>
+      </tr>
+      <tr>
+        <td><code>備考</code></td>
+        <td>オプション</td>
+        <td>メモ・特記事項</td>
+        <td>調査開始日: 2025-01-15</td>
+      </tr>
+    </table>
+
+    <h3>4.2 テンプレート列の使い方</h3>
+    <div class="info-box">
+      <strong>複数値のセットで一括追加が可能</strong><br>
+      テンプレート列に「<code>/</code>」で複数値を区切ることで、複数の一括追加ボタンが自動生成されます。
+    </div>
+
+    <p><strong>例：</strong></p>
+    <pre style="background: #F3F4F6; padding: 12px; border-radius: 4px; overflow-x: auto;">
+地点ID,地点名,テンプレート
+ST001,津久根,広島湾調査
+ST002,似島,広島湾調査/溶存酸素
+ST003,湾口,溶存酸素
+</pre>
+    <p>
+      上記の場合、UI に以下ボタンが表示されます：
+    </p>
+    <ul>
+      <li>📋 <strong>広島湾調査</strong> → ST001, ST002 を追加</li>
+      <li>📋 <strong>溶存酸素</strong> → ST002, ST003 を追加</li>
+      <li>📋 <strong>全て</strong> → すべての地点を追加</li>
+    </ul>
+
+    <h3>4.3 ファイル名キーワード（自動仕分けのコツ）</h3>
+    <p>
+      ファイル名をキーワード照合で自動分類する際のルール：
+    </p>
+    <table>
+      <tr>
+        <th>キーワード種</th>
+        <th>マッチング方式</th>
+        <th>例</th>
+      </tr>
+      <tr>
+        <td><strong>英数字のみ</strong></td>
+        <td>スペース区切りの<span class="highlight">完全単語一致</span></td>
+        <td>「<code>eta</code>」は「<code>06 eta</code>」にマッチするが「<code>etanaka</code>」にはマッチしない</td>
+      </tr>
+      <tr>
+        <td><strong>日本語を含む</strong></td>
+        <td><span class="highlight">部分一致</span></td>
+        <td>「<code>放水路</code>」は「<code>放水路観測</code>」にマッチ</td>
+      </tr>
+    </table>
+
+    <div class="warning-box">
+      <strong>⚠️ 注意：</strong>複数地点にマッチしたり、キーワード不一致のファイルは「未分類」エリアに置かれます。「再分類」ボタンで再判定するか、手動でドラッグ&ドロップで配置してください。
+    </div>
+
+    <h3>4.4 テンプレート CSV をダウンロード</h3>
+    <p>
+      未分類エリア内の「地点一覧」セクションにある「↓ マスタDL」ボタンで、テンプレートCSVをダウンロードできます。
+    </p>
+
+    <div class="page-break"></div>
+
+    <!-- 5. 観測データの読み込み -->
+    <h2 id="data-loading">5. 観測データの読み込み</h2>
+
+    <h3>5.1 対応フォーマット</h3>
+    <table>
+      <tr>
+        <th>項目</th>
+        <th>仕様</th>
+      </tr>
+      <tr>
+        <td>ファイル形式</td>
+        <td>CSV（カンマ区切り値）</td>
+      </tr>
+      <tr>
+        <td>エンコーディング</td>
+        <td>Shift_JIS（推奨）、UTF-8対応</td>
+      </tr>
+      <tr>
+        <td>改行コード</td>
+        <td>CRLF, LF, CR 自動判定</td>
+      </tr>
+      <tr>
+        <td>複数ファイル</td>
+        <td>✓ 複数ファイルを一度に読み込み可能</td>
+      </tr>
+      <tr>
+        <td>ダブルクォート</td>
+        <td>✓ CSV標準形式（ダブルクォート内のカンマは区切り文字扱いしない）</td>
+      </tr>
+    </table>
+
+    <h3>5.2 観測データの構造</h3>
+    <p>
+      観測データCSVは以下の構造を想定しています：
+    </p>
+    <pre style="background: #F3F4F6; padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 12px;">
+...メタデータ...
+SampleCnt=50
+StartPosition=3419.09130,N,13226.93637,E
+...その他メタデータ...
+[Item]
+観測日時,深度,水温,塩分,...
+2025-01-15 09:00,0.5,18.2,34.5,...
+2025-01-15 09:05,1.0,18.1,34.6,...
+    </pre>
+
+    <div class="info-box">
+      <strong>自動検出機能</strong><br>
+      • <strong>[Item]</strong> の直後の行がヘッダー行として自動検出<br>
+      • ない場合：先頭150行から「観測日時」または「Date」を含む行を検出<br>
+      • 最終手段：69行目（0-indexed: 68）を強制ヘッダー行とします（⚠️警告表示）
+    </div>
+
+    <h3>5.3 GPS座標の自動抽出</h3>
+    <p>
+      <code>StartPosition=DDMM.MMMM,N/S,DDDMM.MMMM,E/W</code> 形式が自動で十進数に変換されます：
+    </p>
+    <pre style="background: #F3F4F6; padding: 12px; border-radius: 4px;">
+例：StartPosition=3419.09130,N,13226.93637,E
+↓
+緯度: 34.318188°N, 経度: 132.449895°E
+    </pre>
+
+    <h3>5.4 同名・同日時ファイルの上書き</h3>
+    <div class="warning-box">
+      <strong>同じファイル名かつ同じ観測日時のファイルが読み込まれた場合：</strong><br>
+      • 上書き確認ダイアログが表示<br>
+      • 複数ファイルの場合：「すべて上書き」オプションで一括処理可能<br>
+      • 上書き時：元のカード配置（スイムレーン）は保持
+    </div>
+
+    <h3>5.5 ファイルの削除</h3>
+    <p>
+      各カード右上の「✕」ボタンで削除できます。削除されたファイルの復旧はできないため、ご注意ください。
+    </p>
+
+    <div class="page-break"></div>
+
+    <!-- 6. スイムレーン管理 -->
+    <h2 id="swimlane-management">6. スイムレーン管理</h2>
+
+    <h3>6.1 スイムレーンとは</h3>
+    <p>
+      「スイムレーン」は、地点ごとに観測ファイルを視覚的に管理するカンバン形式の領域です。<span class="highlight">ユーザーが明示的に追加した地点のみ</span>がスイムレーン化されます。
+    </p>
+
+    <h3>6.2 スイムレーンの追加方法</h3>
+
+    <h4>方法1：個別追加</h4>
+    <div class="step-box">
+      左側「地点一覧」で、目的の地点の右にある <strong>「＋」ボタン</strong> をクリック → スイムレーンが作成され、カードが自動仕分けされます。
+    </div>
+
+    <h4>方法2：テンプレート一括追加</h4>
+    <div class="step-box">
+      左側「カテゴリー一括追加」セクション（青色）の <strong>「テンプレート名」ボタン</strong> をクリック → 該当する複数地点が一括でスイムレーン化されます。
+    </div>
+
+    <h4>方法3：全て追加</h4>
+    <div class="step-box">
+      左側「カテゴリー一括追加」セクションの <strong>「全て」ボタン</strong> をクリック → すべての地点がスイムレーン化されます。
+    </div>
+
+    <h3>6.3 カード操作（ドラッグ&ドロップ）</h3>
+    <p>
+      各ファイルカード（青い四角）をドラッグして、別のスイムレーンまたは「未分類」エリアに移動できます。
+    </p>
+    <ul>
+      <li>🖱️ <strong>スイムレーン間の移動：</strong> カードを掴んで別の地点のスイムレーンにドロップ</li>
+      <li>🖱️ <strong>未分類へ移動：</strong> カードを掴んで上部の「未分類」エリアにドロップ</li>
+    </ul>
+
+    <h3>6.4 スイムレーンの解除</h3>
+    <p>
+      各スイムレーンの右上にある <strong>「解除」ボタン</strong> をクリック → 確認ダイアログ → スイムレーンが削除され、紐付きカードはすべて「未分類」に移動します。<strong>地点マスタから削除されません。</strong>
+    </p>
+
+    <h3>6.5 スイムレーンリセット</h3>
+    <p>
+      ヘッダーの <strong>「スイムレーンリセット」ボタン</strong> をクリック → 全スイムレーンが一括解除され、全カードが「未分類」に戻ります。地点マスタは保持されます。
+    </p>
+
+    <h3>6.6 自動仕分け（再分類）</h3>
+    <p>
+      上部「未分類」エリアの <strong>「↩ 再分類」ボタン</strong> をクリック → 未分類のカードがキーワード照合により自動仕分けされます。
+    </p>
+    <div class="info-box">
+      <strong>再分類の対象：</strong> 現在スイムレーン化されている地点のみが対象です。スイムレーンがない場合は処理されません。
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- 7. 地点の編集と地図での座標設定 -->
+    <h2 id="station-management">7. 地点の編集と地図での座標設定</h2>
+
+    <h3>7.1 地点を編集する</h3>
+    <p>
+      左側「地点一覧」の任意の地点名をクリック → 地点編集フォームが開きます。
+    </p>
+    <table>
+      <tr>
+        <th>フィールド</th>
+        <th>説明</th>
+      </tr>
+      <tr>
+        <td><code>地点ID</code></td>
+        <td>地点の一意識別子（重複不可）</td>
+      </tr>
+      <tr>
+        <td><code>地点名</code></td>
+        <td>表示用の地点名</td>
+      </tr>
+      <tr>
+        <td><code>調査区分</code></td>
+        <td>定点 / 臨時 / 未設定</td>
+      </tr>
+      <tr>
+        <td><code>緯度・経度</code></td>
+        <td>数値入力またはピッカーで設定</td>
+      </tr>
+      <tr>
+        <td><code>ファイル名キーワード</code></td>
+        <td>自動仕分け用キーワード（パイプ区切り）</td>
+      </tr>
+      <tr>
+        <td><code>備考</code></td>
+        <td>メモ・特記事項</td>
+      </tr>
+    </table>
+
+    <h3>7.2 🗺️ 地図でピンをドラッグして座標を取得</h3>
+
+    <h4>ステップ 1：地図ピッカーボタンをクリック</h4>
+    <div class="step-box">
+      地点編集フォーム内の <strong>「🗺 地図でピンをドラッグして座標を取得」ボタン</strong> をクリック
+    </div>
+
+    <h4>ステップ 2：地図モーダルが開く</h4>
+    <div class="step-box">
+      • 現在の座標（または地図中央）に <strong>黄色のピンマーカー</strong> が配置<br>
+      • 左上に <strong>操作パネル</strong>（オレンジ枠）が表示：現在の座標と「確定」「キャンセル」ボタン
+    </div>
+
+    <h4>ステップ 3：ピンをドラッグ</h4>
+    <div class="step-box">
+      ピンの上にカーソルを置き、マウスボタンを押したまま目的地まで移動 → <strong>座標がリアルタイムに更新</strong>
+    </div>
+
+    <h4>ステップ 4：確定 or キャンセル</h4>
+    <div class="step-box">
+      • 💾 <strong>確定ボタン</strong> をクリック → 座標がフォーム（緯度・経度欄）に反映され、地点編集フォームに戻る<br>
+      • ❌ <strong>キャンセルボタン</strong> または地図の <strong>× ボタン</strong> → 変更なく地点編集フォームに戻る
+    </div>
+
+    <h3>7.3 レイヤー切り替え</h3>
+    <p>
+      地図右上の「<strong>レイヤーコントロール</strong>」で、背景地図を切り替えられます：
+    </p>
+    <ul>
+      <li>📸 <strong>シームレス写真：</strong> 高解像度衛星画像（詳細な地形確認に最適）</li>
+      <li>🗺️ <strong>淡色地図：</strong> 白地図（地名・地物が見やすい）</li>
+    </ul>
+
+    <h3>7.4 地点の新規追加</h3>
+    <p>
+      ヘッダーの <strong>「＋ 地点を追加」ボタン</strong>（地図モーダル内）をクリック → 空の地点追加フォームが開きます。すべての必須フィールドを入力して「保存」してください。
+    </p>
+
+    <div class="warning-box">
+      <strong>⚠️ 注意：</strong>新規追加時は、入力フォーム内の座標フィールドに数値を直接入力するか、地図ピッカーボタンを使用してください。
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- 8. CSV出力 -->
+    <h2 id="output">8. CSV出力</h2>
+
+    <h3>8.1 出力フォーマット</h3>
+    <p>
+      2つの出力フォーマットから選択できます：
+    </p>
+
+    <h4>📊 形式A：全データ統合（生データ）</h4>
+    <p>
+      各地点に紐付いたすべてのファイルの行データを、地点ごとに統合します。
+    </p>
+    <table>
+      <tr>
+        <th>固定カラム</th>
+        <th>説明</th>
+      </tr>
+      <tr>
+        <td><code>地点ID</code>, <code>地点名</code></td>
+        <td>地点マスタから取得</td>
+      </tr>
+      <tr>
+        <td><code>ファイル名</code></td>
+        <td>元のCSVファイル名</td>
+      </tr>
+      <tr>
+        <td><code>地点緯度(マスタ)</code>, <code>地点経度(マスタ)</code></td>
+        <td>地点マスタの座標</td>
+      </tr>
+      <tr>
+        <td><code>開始位置緯度</code>, <code>開始位置経度</code></td>
+        <td>各ファイルのStartPosition から抽出</td>
+      </tr>
+      <tr>
+        <td><code>水深区分</code></td>
+        <td>0.5m単位に切り捨て</td>
+      </tr>
+      <tr>
+        <td><code>B-1mフラグ</code></td>
+        <td>1 or 0</td>
+      </tr>
+      <tr>
+        <td><code>（元データカラム）</code></td>
+        <td>各ファイルのすべてのカラム</td>
+      </tr>
+    </table>
+
+    <h4>📈 形式B：水深区分別平均値</h4>
+    <p>
+      各地点・各水深区分ごとに、複数ファイルの観測値を平均化します。
+    </p>
+    <table>
+      <tr>
+        <th>固定カラム</th>
+        <th>説明</th>
+      </tr>
+      <tr>
+        <td>〜 上記「形式A」と同様 〜</td>
+        <td>地点ID, 地点名, ファイル名, 座標, 水深区分, B-1mフラグ</td>
+      </tr>
+      <tr>
+        <td><code>（数値カラム）</code></td>
+        <td>複数行の平均値（空白行は除外）</td>
+      </tr>
+      <tr>
+        <td><code>（日時・GPS）</code></td>
+        <td>先頭行の値</td>
+      </tr>
+      <tr>
+        <td><code>（テキスト）</code></td>
+        <td>先頭行の値</td>
+      </tr>
+      <tr>
+        <td><code>データ件数</code></td>
+        <td>その水深区分の行数</td>
+      </tr>
+    </table>
+
+    <h3>8.2 出力時の確認ダイアログ</h3>
+
+    <h4>未分類ファイルの確認</h4>
+    <p>
+      未分類のカードがある場合、以下を確認されます：
+    </p>
+    <ul>
+      <li>💾 <strong>含める：</strong> 未分類のカードも出力に含める</li>
+      <li>🚫 <strong>除外する：</strong> 未分類のカードを出力から除外</li>
+    </ul>
+
+    <h4>⚠️ ヘッダー検出警告</h4>
+    <p>
+      ヘッダーが69行目（固定フォールバック）で検出されたファイルがある場合、以下を確認されます：
+    </p>
+    <ul>
+      <li>💾 <strong>含める：</strong> 警告ファイルも出力に含める</li>
+      <li>🚫 <strong>除外する：</strong> 警告ファイルを出力から除外</li>
+    </ul>
+
+    <h3>8.3 出力ファイル名</h3>
+    <p>
+      自動生成されるファイル名フォーマット：
+    </p>
+    <table>
+      <tr>
+        <th>形式</th>
+        <th>ファイル名フォーマット</th>
+      </tr>
+      <tr>
+        <td>形式A</td>
+        <td><code>結合済み観測データ_生データ_YYYYMMDD_HHmm.csv</code></td>
+      </tr>
+      <tr>
+        <td>形式B</td>
+        <td><code>結合済み観測データ_水深区分別平均_YYYYMMDD_HHmm.csv</code></td>
+      </tr>
+    </table>
+
+    <h3>8.4 出力ファイルのエンコーディング</h3>
+    <div class="info-box">
+      <strong>✓ UTF-8 BOM付き</strong><br>
+      出力CSVはBOM（バイトオーダーマーク）付きUTF-8で保存されます。Excel、Googleスプレッドシート、その他CSVリーダーで正常に開きます。
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- 9. よくある質問（Q&A） -->
+    <h2 id="faq">9. よくある質問（Q&A）</h2>
+
+    <div class="qa-item">
+      <div class="question">Q: 地点マスタを再度アップロードしたいが、既存のデータが失われないか？</div>
+      <div class="answer">
+        A: ご安心ください。再アップロード時に「全リセット」「差分更新」の2つのモードを選択できます：
+        <ul style="margin: 10px 0;">
+          <li><strong>全リセット：</strong> 全スイムレーンと全カード配置が初期化され、新しい地点マスタが読み込まれます</li>
+          <li><strong>差分更新：</strong> 既存の地点ID が一致するスイムレーンは維持され、新規・削除地点のみ反映されます</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="qa-item">
+      <div class="question">Q: ファイル名から自動分類されない理由は？</div>
+      <div class="answer">
+        A: 以下の理由が考えられます：
+        <ul style="margin: 10px 0;">
+          <li>⚠️ <strong>キーワード不一致：</strong> ファイル名に地点マスタのキーワードが含まれていない</li>
+          <li>⚠️ <strong>複数地点に合致：</strong> 複数の地点に部分一致している</li>
+          <li>⚠️ <strong>スイムレーン未追加：</strong> 対応する地点がスイムレーン化されていない（再分類はスイムレーン地点のみ対象）</li>
+          <li>⚠️ <strong>英数字キーワード：</strong> 「eta」は「etanaka」にマッチしません（完全単語一致）</li>
+        </ul>
+        👉 解決法：「未分類」エリアのカードをドラッグ&ドロップで手動配置するか、キーワードを見直してください。
+      </div>
+    </div>
+
+    <div class="qa-item">
+      <div class="question">Q: 同じファイルを2回読み込んでしまった。上書きできる？</div>
+      <div class="answer">
+        A: はい。同じファイル名かつ同じ観測日時のファイルを再度読み込むと、「上書き確認」ダイアログが表示されます。「上書き」を選択すると、カードの配置は保持されたまま内容が更新されます。複数ファイル読み込み時は「すべて上書き」で一括処理できます。
+      </div>
+    </div>
+
+    <div class="qa-item">
+      <div class="question">Q: 地図でピンをドラッグする際、反応が遅い。</div>
+      <div class="answer">
+        A: 以下をお試しください：
+        <ul style="margin: 10px 0;">
+          <li>🔄 ブラウザを再読み込み（F5キー）</li>
+          <li>🗺️ レイヤー「淡色地図」に切り替えて軽くする</li>
+          <li>🖥️ ブラウザの開発者ツール（F12）を閉じる</li>
+          <li>💻 他のタブを閉じてメモリを解放</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="qa-item">
+      <div class="question">Q: CSV出力時に「データ行が0件です」エラーが出る。</div>
+      <div class="answer">
+        A: ファイルの読み込みに失敗しており、データ行が存在しません。以下を確認してください：
+        <ul style="margin: 10px 0;">
+          <li>✓ ファイル内に実際のデータ行があるか</li>
+          <li>✓ ヘッダー行以下にデータがあるか</li>
+          <li>✓ エンコーディングが Shift_JIS または UTF-8 か</li>
+        </ul>
+        ⚠️ 警告アイコンが表示されていないか確認し、必要に応じてファイルを修正してから再度アップロードしてください。
+      </div>
+    </div>
+
+    <div class="qa-item">
+      <div class="question">Q: B-1mフラグが0になってしまった。どういう意味？</div>
+      <div class="answer">
+        A: ファイル内の最大水深が1.0m未満の場合、すべての行のB-1mフラグは0になります。計算ロジック：
+        <ul style="margin: 10px 0;">
+          <li>最大水深 ≥ 1.0m → （最大水深区分 - 1.0m）の行のみフラグ = 1</li>
+          <li>最大水深 &lt; 1.0m → すべての行のフラグ = 0</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="qa-item">
+      <div class="question">Q: 形式A と形式B、どちらを使うべき？</div>
+      <div class="answer">
+        A: 用途により異なります：
+        <ul style="margin: 10px 0;">
+          <li>📊 <strong>形式A（生データ）：</strong> 全観測値の詳細を保持したい場合（統計、詳細解析用）</li>
+          <li>📈 <strong>形式B（平均値）：</strong> 水深区分ごとの平均値を求めたい場合（トレンド分析、簡潔レポート用）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="qa-item">
+      <div class="question">Q: テンプレート列に複数値を入力する場合、「/」の代わりに「,」を使ってもいい？</div>
+      <div class="answer">
+        A: いいえ。テンプレート列は <strong>スラッシュ「/」で区切る</strong> ことが仕様です。カンマを使用すると、正しく分割されません。例：
+        <ul style="margin: 10px 0;">
+          <li>✓ OK: <code>広島湾調査/溶存酸素</code></li>
+          <li>✗ NG: <code>広島湾調査,溶存酸素</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="qa-item">
+      <div class="question">Q: 座標（緯度・経度）は何桁の精度で必要？</div>
+      <div class="answer">
+        A: 10進数の小数第3〜7位（精度 100m〜1cm）が一般的です。本ツールは入力値を<strong>小数7桁</strong>で丸めて保存します。GPSの一般的な精度（±5m程度）であれば小数4桁（精度 11m）で十分です。
+      </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <!-- 10. トラブルシューティング -->
+    <h2 id="troubleshooting">10. トラブルシューティング</h2>
+
+    <h3>10.1 ファイルが読み込めない</h3>
+    <table>
+      <tr>
+        <th>症状</th>
+        <th>原因</th>
+        <th>対処法</th>
+      </tr>
+      <tr>
+        <td>「読み込みエラー」が表示される</td>
+        <td>エンコーディングが異なる、またはファイルが破損している</td>
+        <td>1. Shift_JIS または UTF-8 BOM で保存し直す<br>2. ファイルを別のエディタで開いて内容確認<br>3. テンポラリファイルがないか確認</td>
+      </tr>
+      <tr>
+        <td>「ヘッダー行が見つかりません」</td>
+        <td>ファイル形式が想定と異なる、またはデータ行が0件</td>
+        <td>1. ファイル内容を確認（[Item] 行、「観測日時」列の存在確認）<br>2. ヘッダーが69行目より奥にないか確認<br>3. データ行が存在するか確認</td>
+      </tr>
+      <tr>
+        <td>「デコードエラー」</td>
+        <td>ファイルのエンコーディングが自動判定できない</td>
+        <td>ファイルを明示的に Shift_JIS で保存し直す（Excel: ファイル → 名前を付けて保存 → 形式「CSV (Shift_JIS)」）</td>
+      </tr>
+    </table>
+
+    <h3>10.2 自動仕分けが作動しない</h3>
+    <table>
+      <tr>
+        <th>症状</th>
+        <th>原因</th>
+        <th>対処法</th>
+      </tr>
+      <tr>
+        <td>「再分類」ボタンが無効（グレーアウト）</td>
+        <td>スイムレーンがない</td>
+        <td>左側「地点一覧」から目的の地点の「＋」ボタンを押してスイムレーン化してください</td>
+      </tr>
+      <tr>
+        <td>ファイルが「未分類」のままになる</td>
+        <td>キーワード不一致、複数地点に合致、またはスイムレーン未追加</td>
+        <td>1. 地点マスタのキーワードを確認<br>2. ファイル名を確認（「eta」と「etanaka」は別扱い）<br>3. 「再分類」ボタンを押す<br>4. 手動でドラッグ&ドロップで配置</td>
+      </tr>
+      <tr>
+        <td>予期しない地点に分類されている</td>
+        <td>複数地点のキーワードが部分一致している</td>
+        <td>地点マスタのキーワードを見直し、より具体的なキーワードに変更してください</td>
+      </tr>
+    </table>
+
+    <h3>10.3 地図が表示されない</h3>
+    <table>
+      <tr>
+        <th>症状</th>
+        <th>原因</th>
+        <th>対処法</th>
+      </tr>
+      <tr>
+        <td>地図モーダルが黒く表示される</td>
+        <td>Leaflet が初期化されていない、またはブラウザのキャッシュが古い</td>
+        <td>1. ブラウザを再読み込み（Ctrl+Shift+R で完全リロード）<br>2. DevTools（F12）で Console にエラーがないか確認<br>3. インターネット接続を確認（地理院地図タイルを読み込む）</td>
+      </tr>
+      <tr>
+        <td>ピンが表示されない</td>
+        <td>座標が無効（NaN、null、範囲外）</td>
+        <td>地点マスタの緯度・経度を確認（数値、-90〜90 / -180〜180 の範囲内）</td>
+      </tr>
+      <tr>
+        <td>地図がぼやけている、タイルがズレている</td>
+        <td>モーダル展開後に Leaflet が再描画されていない</td>
+        <td>その状態で地図をズームイン/アウト（マウスホイール）すると正常化します</td>
+      </tr>
+    </table>
+
+    <h3>10.4 出力ファイルが開けない</h3>
+    <table>
+      <tr>
+        <th>症状</th>
+        <th>原因</th>
+        <th>対処法</th>
+      </tr>
+      <tr>
+        <td>Excel で文字化けする</td>
+        <td>ファイルを別のエンコーディングで開いている</td>
+        <td>Excel で新規シート → データ → テキストファイルから → UTF-8 を指定</td>
+      </tr>
+      <tr>
+        <td>Googleスプレッドシートで日本語がおかしい</td>
+        <td>エンコーディングが正しく判定されていない</td>
+        <td>1. ファイルをダウンロード<br>2. Googleドライブにアップロード<br>3. 「Googleスプレッドシートで開く」→ インポート時にエンコーディング「UTF-8」を選択</td>
+      </tr>
+      <tr>
+        <td>カンマが含まれる列がおかしく表示される</td>
+        <td>CSV形式のダブルクォート処理が正しく行われていない（ツール側では正常）</td>
+        <td>1. テキストエディタで確認し、ダブルクォートが正しく付与されているか確認<br>2. Excel の「データ」→「テキストを列に分割」で手動調整</td>
+      </tr>
+    </table>
+
+    <h3>10.5 ブラウザのサポート</h3>
+    <div class="info-box">
+      <strong>推奨ブラウザ：</strong><br>
+      • Chrome / Chromium 最新版<br>
+      • Firefox 最新版<br>
+      • Safari 最新版<br>
+      • Edge 最新版<br><br>
+      <strong>非推奨：</strong> Internet Explorer（完全非対応）
+    </div>
+
+    <h3>10.6 パフォーマンスが低い</h3>
+    <table>
+      <tr>
+        <th>症状</th>
+        <th>対処法</th>
+      </tr>
+      <tr>
+        <td>操作が遅い、応答しない</td>
+        <td>1. 不要なタブを閉じる<br>2. ブラウザのキャッシュをクリア<br>3. メモリ解放（タスクマネージャで確認）<br>4. ブラウザを再起動</td>
+      </tr>
+      <tr>
+        <td>大量のファイル読み込みで落ちる</td>
+        <td>1. 一度に 50 ファイル以上を読み込まないことを推奨<br>2. 複数回に分けて読み込む<br>3. ブラウザのメモリリミットを確認</td>
+      </tr>
+      <tr>
+        <td>地図がもたつく</td>
+        <td>1. 背景地図を「淡色地図」に変更<br>2. 地点が多すぎないか確認（数百個以上の場合）<br>3. ズームレベルを調整</td>
+      </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <!-- フッター -->
+    <hr style="margin: 50px 0; border: 1px solid #E5E7EB;">
+    <div style="text-align: center; color: #999; font-size: 13px;">
+      <p>
+        <strong>AAQ-RINKO CSV 仕分け・結合ツール v3.2</strong><br>
+        観測データの自動仕分け・統合・水深区分別平均値計算ツール<br><br>
+        本マニュアルの最終更新日：2026年2月<br>
+        ご不明な点や問題が発生した場合は、開発チームにお問い合わせください。
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>
