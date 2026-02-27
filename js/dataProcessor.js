@@ -17,8 +17,10 @@ const dataProcessor = (() => {
   function normalizeFileName(fileName) {
     // 拡張子を除く
     let name = fileName.replace(/\.csv$/i, '');
-    // 先頭の数字・記号除去
-    name = name.replace(/^[\d\s\-_#.()[\]]+/, '');
+    // 先頭の数字のみ除去（記号で止まる）
+    name = name.replace(/^\d+/, '');
+    // 先頭に残った記号を除去
+    name = name.replace(/^[\s\-_#.()[\]]+/, '');
     // アンダースコア → スペース
     name = name.replace(/_/g, ' ');
     return name.toLowerCase();
