@@ -545,6 +545,7 @@ const app = (() => {
     const lat = parseFloat(document.getElementById('sf-lat').value) || null;
     const lon = parseFloat(document.getElementById('sf-lon').value) || null;
     const keywords = document.getElementById('sf-keywords').value.trim().split('|').map(k => k.trim()).filter(Boolean);
+    const templates = document.getElementById('sf-templates').value.trim().split('/').map(t => t.trim()).filter(Boolean);
     const note = document.getElementById('sf-note').value.trim();
 
     if (!name || !id) {
@@ -559,7 +560,7 @@ const app = (() => {
       return;
     }
 
-    const stationData = { id, name, category, lat, lon, keywords, note, _invalid: false };
+    const stationData = { id, name, category, lat, lon, keywords, templates, note, _invalid: false };
 
     if (editingId) {
       // 編集

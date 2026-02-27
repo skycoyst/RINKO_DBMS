@@ -29,14 +29,29 @@ const uiController = (() => {
 
     el.innerHTML = `
       <div class="swimlane-header">
-        <span class="station-link" onclick="mapController.openMapModal('${_esc(station.id)}', app.state.stations, app.getFileCounts())">${_esc(station.name)} (${_esc(station.id)})</span>
-        <span class="cat-${_esc(station.category)} badge-spaced">${_esc(station.category)}</span>
-        <span class="badge badge-blue badge-spaced swimlane-count" data-station-id="${_esc(station.id)}">0</span>
-        <div class="swimlane-actions">
-          <button class="btn-secondary btn-sm" title="地点を編集"
-            onclick="app.editStation('${_esc(station.id)}')">編集</button>
-          <button class="btn-danger btn-sm" title="スイムレーンを解除（地点はマスタに残る）"
-            onclick="app.deleteSwimlane('${_esc(station.id)}')">解除</button>
+        <div class="swimlane-header-main">
+          <div class="swimlane-info-col">
+            <!-- 1行目: 地点 & ファイル数 -->
+            <div class="swimlane-header-row">
+              <span class="station-link" onclick="mapController.openMapModal('${_esc(station.id)}', app.state.stations, app.getFileCounts())" title="${_esc(station.name)}">
+                ${_esc(station.name)}
+              </span>
+              <span class="badge badge-blue swimlane-count shrink-0" data-station-id="${_esc(station.id)}">0</span>
+            </div>
+            <!-- 2行目: 地点ID -->
+            <div class="text-[12px] text-gray-500 truncate" title="ID: ${_esc(station.id)}">
+              ID: ${_esc(station.id)}
+            </div>
+            <!-- 3行目: その他（カテゴリ） -->
+            <div class="flex items-center">
+              <span class="cat-${_esc(station.category)} !text-[9px] !px-1 !py-0">${_esc(station.category)}</span>
+            </div>
+          </div>
+          <!-- 4行目: ボタン列 (横並び) -->
+          <div class="swimlane-btn-col">
+            <button class="btn-secondary btn-sm" title="地点を編集" onclick="app.editStation('${_esc(station.id)}')">編集</button>
+            <button class="btn-danger btn-sm" title="スイムレーンから解除" onclick="app.deleteSwimlane('${_esc(station.id)}')">解除</button>
+          </div>
         </div>
       </div>
       <div class="swimlane-body swim-drop-target"
@@ -247,14 +262,19 @@ const uiController = (() => {
    * @param {Map<string,number>} fileCounts
    */
   function renderStationList(stations, fileCounts) {
-    const container = document.getElementById('station-list');
+    const listContainer = document.getElementById('station-list');
+    const toolsContainer = document.getElementById('station-tools');
     const countEl = document.getElementById('master-count');
 
     const validStations = stations.filter(s => !s._invalid);
     countEl.textContent = `${validStations.length} 件`;
 
+    // コンテナをクリア
+    listContainer.innerHTML = '';
+    toolsContainer.innerHTML = '';
+
     if (validStations.length === 0) {
-      container.innerHTML = `
+      listContainer.innerHTML = `
         <div class="station-list-empty">
           地点マスタを読み込んでください
           <br>
@@ -266,10 +286,9 @@ const uiController = (() => {
       return;
     }
 
-    container.innerHTML = '';
     const swimlaneIds = app.state.swimlaneIds;
 
-    // ─── テンプレート別一括追加 ───
+    // ─── テンプレート別一括追加 (fixed tools) ───
     const templateSet = new Set();
     for (const st of validStations) {
       if (st.templates) {
@@ -278,7 +297,7 @@ const uiController = (() => {
     }
     const templates = [...templateSet];
 
-    {
+    if (templates.length > 0) {
       const catSection = document.createElement('div');
       catSection.className = 'category-batch-section';
 
@@ -305,10 +324,10 @@ const uiController = (() => {
       btnGroup.appendChild(allBtn);
 
       catSection.appendChild(btnGroup);
-      container.appendChild(catSection);
+      toolsContainer.appendChild(catSection);
     }
 
-    // 地点追加ボタン
+    // 地点追加ボタン (fixed tools)
     const addBtn = document.createElement('div');
     addBtn.className = 'add-btn-wrap';
     addBtn.innerHTML = `
@@ -316,8 +335,9 @@ const uiController = (() => {
         ＋ 地図から地点を追加
       </button>
     `;
-    container.appendChild(addBtn);
+    toolsContainer.appendChild(addBtn);
 
+    // ─── 地点一覧 (scrollable list) ───
     for (const st of validStations) {
       const fc = fileCounts ? (fileCounts.get(st.id) || 0) : 0;
       const hasSwimlane = swimlaneIds && swimlaneIds.has(st.id);
@@ -336,13 +356,13 @@ const uiController = (() => {
         </div>
         <div class="station-actions">
           ${hasSwimlane
-            ? `<span class="swimlane-added-badge" title="スイムレーン追加済み">✓</span>`
-            : `<button class="btn-primary btn-sm" onclick="app.addSwimlane('${_esc(st.id)}')" title="スイムレーンに追加">＋</button>`
-          }
+          ? `<span class="swimlane-added-badge" title="スイムレーン追加済み">✓</span>`
+          : `<button class="btn-primary btn-sm" onclick="app.addSwimlane('${_esc(st.id)}')" title="スイムレーンに追加">＋</button>`
+        }
           <button class="btn-secondary btn-sm" onclick="app.editStation('${_esc(st.id)}')">編集</button>
         </div>
       `;
-      container.appendChild(item);
+      listContainer.appendChild(item);
     }
   }
 
@@ -487,6 +507,7 @@ const uiController = (() => {
     document.getElementById('sf-lat').value = station ? (station.lat || '') : (lat !== null ? lat.toFixed(6) : '');
     document.getElementById('sf-lon').value = station ? (station.lon || '') : (lon !== null ? lon.toFixed(6) : '');
     document.getElementById('sf-keywords').value = station ? (station.keywords || []).join('|') : '';
+    document.getElementById('sf-templates').value = station ? (station.templates || []).join('/') : '';
     document.getElementById('sf-note').value = station ? (station.note || '') : '';
     modal.classList.remove('hidden');
   }
@@ -616,11 +637,21 @@ const uiController = (() => {
   function _generateNextId() {
     const ids = app.state.stations.map(s => s.id);
     let max = 0;
+    let prefix = 'ST';
+
     for (const id of ids) {
-      const m = id.match(/ST(\d+)/i);
-      if (m) max = Math.max(max, parseInt(m[1], 10));
+      // 任意の英字プレフィックス + 数字の組み合わせを探す
+      const m = id.match(/^([A-Za-z]+)(\d+)$/);
+      if (m) {
+        const num = parseInt(m[2], 10);
+        if (num > max) {
+          max = num;
+          prefix = m[1]; // 最新（最大）のIDに使われているプレフィックスを継承
+        }
+      }
     }
-    return `ST${String(max + 1).padStart(3, '0')}`;
+    // 最大値 + 1 を 4桁のゼロ埋めで返す
+    return `${prefix}${String(max + 1).padStart(4, '0')}`;
   }
 
   function _clearSelection() {

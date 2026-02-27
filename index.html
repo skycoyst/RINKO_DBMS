@@ -33,7 +33,7 @@
         形式B出力（水深区分別平均）
       </button>
       <button id="btn-reset-master" class="btn-danger hidden">
-        スイムレーンリセット
+        読み込み地点リセット
       </button>
     </div>
   </header>
@@ -70,6 +70,9 @@
           </button>
         </div>
       </div>
+      <!-- 固定ツールエリア -->
+      <div id="station-tools" class="px-3 flex-shrink-0"></div>
+      <!-- スクロール地点リスト -->
       <div id="station-list" class="flex-1 overflow-y-auto px-3 pb-3">
         <div class="text-gray-400 text-sm text-center mt-8">
           <div>地点マスタを読み込んでください</div>
@@ -106,12 +109,15 @@
           <div class="swimlane" id="unclassified-column" data-station-id=""
             style="width:100% !important; height:auto; min-height:130px; margin-bottom:0;">
             <div class="swimlane-header">
-              <span class="font-semibold text-gray-700 text-sm">未分類の観測データ</span>
-              <span id="unclassified-count" class="badge badge-gray badge-spaced">0</span>
-              <button class="btn-secondary btn-sm badge-spaced" onclick="app.autoAssignUnclassified()"
-                title="未分類ファイルをキーワードで自動仕分け">
-                ↩ 再分類
-              </button>
+              <div class="swimlane-header-row">
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-gray-700 text-sm">未分類の観測データ</span>
+                  <span id="unclassified-count" class="badge badge-gray">0</span>
+                </div>
+                <button class="btn-secondary btn-sm" onclick="app.autoAssignUnclassified()" title="未分類ファイルをキーワードで自動仕分け">
+                  ↩ 再分類
+                </button>
+              </div>
             </div>
             <div id="unclassified-area" class="swimlane-body dropzone swim-drop-target" data-station-id=""
               style="flex-direction:row; flex-wrap:wrap; overflow-y:auto; max-height:200px;"
@@ -200,15 +206,18 @@
           </div>
         </div>
         <div class="form-group" style="margin-top:-4px;">
-          <button type="button" onclick="app.openMapForCoordPick()"
-            class="btn-secondary w-full text-sm"
+          <button type="button" onclick="app.openMapForCoordPick()" class="btn-secondary w-full text-sm"
             style="display:flex;align-items:center;justify-content:center;gap:6px;">
             <span>🗺</span> 地図でピンをドラッグして座標を取得
           </button>
         </div>
         <div class="form-group">
-          <label class="form-label">ファイル名キーワード</label>
+          <label class="form-label">ファイル名キーワード（○○|○○ という記載で分割）</label>
           <input type="text" id="sf-keywords" class="form-input" placeholder="パイプ区切り (例: tukune|つくね)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">テンプレート（○○/○○ という記載で分割）</label>
+          <input type="text" id="sf-templates" class="form-input" placeholder="スラッシュ区切り (例: 広島湾/一括)">
         </div>
         <div class="form-group">
           <label class="form-label">備考</label>
