@@ -92,6 +92,9 @@ const uiController = (() => {
   function createFileCard(card) {
     const el = document.createElement('div');
     el.className = 'file-card';
+    if (card.parsed && card.parsed.gpsCoord) {
+      el.classList.add('has-gps');
+    }
     el.dataset.cardId = card.id;
     el.draggable = true;
     el.title = card.fileName;
@@ -200,7 +203,49 @@ const uiController = (() => {
 
     _hidePlaceholder(target);
     target.appendChild(card);
+
+    // ─── 距離チェック（300m以上離れていたら警告） ───
+    updateCardDistanceWarning(cardId, stationId);
+
     _updateCounts();
+  }
+
+  /**
+   * カードの観測点と地点マスタの距離をチェックし、300m以上なら警告クラスを付与
+   * @param {string} cardId
+   * @param {string} stationId
+   */
+  function updateCardDistanceWarning(cardId, stationId) {
+    const cardEl = document.querySelector(`.file-card[data-card-id="${cardId}"]`);
+    if (!cardEl) return;
+
+    if (!stationId) {
+      cardEl.classList.remove('too-far');
+      return;
+    }
+
+    const card = app.state.cards.get(cardId);
+    const station = app.state.stations.find(s => s.id === stationId);
+
+    if (card && card.parsed && card.parsed.gpsCoord && station && station.lat !== null && station.lon !== null) {
+      const dist = dataProcessor.calculateDistance(
+        card.parsed.gpsCoord.lat,
+        card.parsed.gpsCoord.lon,
+        station.lat,
+        station.lon
+      );
+
+      if (dist !== null && dist > 300) {
+        cardEl.classList.add('too-far');
+        cardEl.title = `警告: 地点マスタから約${Math.round(dist)}m離れています\n${card.fileName}`;
+      } else {
+        cardEl.classList.remove('too-far');
+        cardEl.title = card.fileName;
+      }
+    } else {
+      cardEl.classList.remove('too-far');
+      cardEl.title = card.fileName;
+    }
   }
 
   /**
@@ -401,9 +446,22 @@ const uiController = (() => {
 
     modal.classList.remove('hidden');
 
+    // ─── 地名・座標から登録ボタンの制御 ───
+    const regBtn = document.getElementById('btn-register-from-preview');
+    const gps = card.parsed && card.parsed.gpsCoord;
+
+    if (gps) {
+      regBtn.classList.remove('hidden');
+      // 座標をデータ属性に保存して、ボタンクリック時に取得できるようにする
+      regBtn.dataset.lat = gps.lat;
+      regBtn.dataset.lon = gps.lon;
+      regBtn.dataset.fileName = card.fileName;
+    } else {
+      regBtn.classList.add('hidden');
+    }
+
     // ─── 地図表示 ───
     const mapDiv = document.getElementById('preview-map');
-    const gps = card.parsed && card.parsed.gpsCoord;
 
     if (gps) {
       mapDiv.classList.remove('hidden');
@@ -486,7 +544,38 @@ const uiController = (() => {
    */
   function closePreviewModal() {
     document.getElementById('preview-modal').classList.add('hidden');
-    // 必要なら地図の状態をリセット
+    // ボタンを隠しておく
+    document.getElementById('btn-register-from-preview').classList.add('hidden');
+  }
+
+  /**
+   * プレビュー内の「新規地点登録」ボタンクリック時
+   */
+  function onRegisterFromPreview() {
+    const btn = document.getElementById('btn-register-from-preview');
+    const lat = parseFloat(btn.dataset.lat);
+    const lon = parseFloat(btn.dataset.lon);
+    const fileName = btn.dataset.fileName || '';
+
+    // プレビューを閉じて
+    closePreviewModal();
+
+    // 登録フォームを開く。ファイル名からある程度推測した名前を入れる
+    let suggestedName = fileName.replace(/\.csv$/i, '');
+    // 先頭の数字などを除去するロジックを dataProcessor から流用しても良いが、ここでは単純化
+    suggestedName = suggestedName.replace(/^\d+/, '').replace(/^[\s\-_#.()[\]]+/, '');
+
+    openStationFormModal(null, lat, lon);
+
+    // フォームが開いた後、名前フィールドにカーソルを合わせる
+    setTimeout(() => {
+      const nameInput = document.getElementById('sf-name');
+      if (nameInput) {
+        nameInput.value = suggestedName;
+        nameInput.focus();
+        nameInput.select();
+      }
+    }, 100);
   }
 
   // ─── 地点フォームモーダル ───
@@ -503,7 +592,7 @@ const uiController = (() => {
     document.getElementById('sf-editing-id').value = station ? station.id : '';
     document.getElementById('sf-name').value = station ? station.name : '';
     document.getElementById('sf-id').value = station ? station.id : _generateNextId();
-    document.getElementById('sf-category').value = station ? station.category : '定点';
+    document.getElementById('sf-category').value = station ? station.category : '未設定';
     document.getElementById('sf-lat').value = station ? (station.lat || '') : (lat !== null ? lat.toFixed(6) : '');
     document.getElementById('sf-lon').value = station ? (station.lon || '') : (lon !== null ? lon.toFixed(6) : '');
     document.getElementById('sf-keywords').value = station ? (station.keywords || []).join('|') : '';
@@ -671,12 +760,14 @@ const uiController = (() => {
     clearAllSwimlanes,
     createFileCard,
     moveCardToArea,
+    updateCardDistanceWarning,
     removeCard,
     onDragOver,
     onDrop,
     setupDragAndDrop,
     renderStationList,
     showPreviewModal,
+    onRegisterFromPreview,
     closePreviewModal,
     openStationFormModal,
     closeStationFormModal,

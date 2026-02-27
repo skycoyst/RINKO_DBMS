@@ -161,6 +161,9 @@
     <div class="modal-container" style="width:900px; max-height:80vh;">
       <div class="modal-header">
         <span id="preview-modal-title" class="font-semibold text-sm truncate"></span>
+        <button id="btn-register-from-preview" class="btn-primary btn-sm hidden"
+          style="margin-left:auto; margin-right:8px;"
+          onclick="uiController.onRegisterFromPreview()">この位置で新規地点登録</button>
         <button class="modal-close" onclick="uiController.closePreviewModal()">×</button>
       </div>
       <div class="modal-body overflow-auto" style="max-height:calc(80vh - 44px);">
@@ -192,6 +195,7 @@
           <select id="sf-category" class="form-input">
             <option value="定点">定点</option>
             <option value="臨時">臨時</option>
+            <option value="個別対応">個別対応</option>
             <option value="未設定">未設定</option>
           </select>
         </div>

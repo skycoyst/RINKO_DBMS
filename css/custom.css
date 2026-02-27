@@ -235,6 +235,18 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+.file-card.has-gps {
+  border: 1px solid #1F2937;
+  /* 黒枠 (濃いグレー) */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.file-card.too-far {
+  border: 2px solid #EF4444 !important;
+  /* 赤枠 (警告) */
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
 .file-card.selected {
   border-color: #2563EB;
   background-color: #EFF6FF;

@@ -100,6 +100,26 @@ const dataProcessor = (() => {
   }
 
   /**
+   * 2点間の距離を計算（メートル）
+   * @param {number} lat1
+   * @param {number} lon1
+   * @param {number} lat2
+   * @param {number} lon2
+   * @returns {number|null}
+   */
+  function calculateDistance(lat1, lon1, lat2, lon2) {
+    if (lat1 === null || lon1 === null || lat2 === null || lon2 === null) return null;
+    const R = 6371000; // 地球の半径 (m)
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  /**
    * B-1mフラグ付与
    * ファイルごとに最大水深区分を算出し、「最大水深区分 - 1.0m」の行のみ 1
    * 最大水深が 1.0m 未満のファイルは全行 0
@@ -386,6 +406,7 @@ const dataProcessor = (() => {
     normalizeFileName,
     autoAssignFiles,
     calculateDepthBin,
+    calculateDistance,
     applyB1mFlag,
     mergeAllData,
     calculateDepthBinAverages,
