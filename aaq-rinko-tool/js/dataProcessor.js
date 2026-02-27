@@ -32,6 +32,26 @@ const dataProcessor = (() => {
    *   assigned: { stationId => [cardId, ...] }
    *   unclassified: [cardId, ...]
    */
+  /**
+   * キーワードと正規化済みファイル名のマッチング
+   * - 半角英数のみのキーワード: スペース区切りワードの完全一致
+   *   例) "eta" は "etanaka" にマッチしないが "eta" にはマッチする
+   * - 日本語等を含むキーワード: 部分一致（従来通り）
+   *   例) "放水路" は "放水路観測" にマッチする
+   * @param {string} normalizedName 正規化済みファイル名（小文字）
+   * @param {string} kw キーワード
+   * @returns {boolean}
+   */
+  function _matchKeyword(normalizedName, kw) {
+    const kwLower = kw.toLowerCase();
+    if (/^[a-zA-Z0-9]+$/.test(kwLower)) {
+      // 半角英数キーワード: スペース区切りのワード単位で完全一致
+      return normalizedName.split(/\s+/).some(w => w === kwLower);
+    }
+    // 日本語等: 部分一致
+    return normalizedName.includes(kwLower);
+  }
+
   function autoAssignFiles(cardList, stations) {
     const assigned = new Map();   // stationId → cardId[]
     const unclassified = [];
@@ -47,7 +67,7 @@ const dataProcessor = (() => {
           : [st.name.toLowerCase()];
 
         for (const kw of kws) {
-          if (kw && normalizedName.includes(kw.toLowerCase())) {
+          if (kw && _matchKeyword(normalizedName, kw)) {
             matches.push(st.id);
             break;
           }

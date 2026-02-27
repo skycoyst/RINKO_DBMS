@@ -108,6 +108,10 @@
             <div class="swimlane-header">
               <span class="font-semibold text-gray-700 text-sm">未分類の観測データ</span>
               <span id="unclassified-count" class="badge badge-gray badge-spaced">0</span>
+              <button class="btn-secondary btn-sm badge-spaced" onclick="app.autoAssignUnclassified()"
+                title="未分類ファイルをキーワードで自動仕分け">
+                ↩ 再分類
+              </button>
             </div>
             <div id="unclassified-area" class="swimlane-body dropzone swim-drop-target" data-station-id=""
               style="flex-direction:row; flex-wrap:wrap; overflow-y:auto; max-height:200px;"

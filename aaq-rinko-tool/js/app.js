@@ -326,12 +326,14 @@ const app = (() => {
   // ─── 自動仕分け ───
 
   function _autoAssignUnclassified() {
-    if (state.stations.length === 0) return;
+    if (state.swimlaneIds.size === 0) return;
 
     const unclassIds = state.assignments.get('') || [];
     const unclassCards = unclassIds.map(id => state.cards.get(id)).filter(Boolean);
 
-    const { assigned, unclassified } = dataProcessor.autoAssignFiles(unclassCards, state.stations);
+    // スイムレーン追加済みの地点のみを対象にマッチング
+    const activeStations = state.stations.filter(s => !s._invalid && state.swimlaneIds.has(s.id));
+    const { assigned, unclassified } = dataProcessor.autoAssignFiles(unclassCards, activeStations);
 
     assigned.forEach((cardIds, stationId) => {
       for (const cardId of cardIds) {
@@ -340,6 +342,25 @@ const app = (() => {
     });
 
     uiController.updateCounts();
+  }
+
+  /**
+   * 未分類カードを手動で再分類（公開用）
+   */
+  function autoAssignUnclassified() {
+    if (state.swimlaneIds.size === 0) {
+      uiController.showToast('スイムレーンがありません。先に地点を追加してください', 'warn');
+      return;
+    }
+    const before = (state.assignments.get('') || []).length;
+    _autoAssignUnclassified();
+    const after = (state.assignments.get('') || []).length;
+    const count = before - after;
+    if (count > 0) {
+      uiController.showToast(`${count}件を自動仕分けしました`, 'success');
+    } else {
+      uiController.showToast('自動仕分けできるファイルがありませんでした', 'info');
+    }
   }
 
   // ─── カード移動 ───
@@ -905,5 +926,6 @@ const app = (() => {
     addSwimlanesByCategory,
     addSwimlanesByTemplate,
     addAllSwimlanes,
+    autoAssignUnclassified,
   };
 })();
