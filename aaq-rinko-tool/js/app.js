@@ -12,6 +12,7 @@ const app = (() => {
     cards: new Map(),      // cardId → card object
     assignments: new Map(),// stationId → cardId[]  ('' = 未分類)
     cardOrder: [],         // 全カードIDの登録順
+    swimlaneIds: new Set(),// スイムレーン追加済みの地点ID
   };
 
   let cardSeq = 0;
@@ -100,10 +101,7 @@ const app = (() => {
         });
         uiController.clearAllSwimlanes();
         state.stations = stations;
-        // スイムレーン生成
-        for (const st of stations) {
-          if (!st._invalid) uiController.createSwimlane(st);
-        }
+        state.swimlaneIds.clear();
         state.assignments = new Map();
       } else {
         // 差分更新
@@ -119,14 +117,7 @@ const app = (() => {
               _moveAssignment(cid, sid, '');
             }
             uiController.removeSwimlane(sid);
-          }
-        }
-
-        // 新規地点 → スイムレーン追加
-        for (const st of stations) {
-          if (st._invalid) continue;
-          if (!existingIds.has(st.id)) {
-            uiController.createSwimlane(st);
+            state.swimlaneIds.delete(sid);
           }
         }
 
@@ -521,6 +512,7 @@ const app = (() => {
     } else {
       // 追加
       state.stations.push(stationData);
+      state.swimlaneIds.add(stationData.id);
       uiController.createSwimlane(stationData);
       mapController.addMarker(stationData, 0);
     }
@@ -553,6 +545,7 @@ const app = (() => {
             }
             mapController.removeMarker(stationId);
             uiController.removeSwimlane(stationId);
+            state.swimlaneIds.delete(stationId);
             state.stations = state.stations.filter(s => s.id !== stationId);
             state.assignments.delete(stationId);
             uiController.renderStationList(state.stations, getFileCounts());
@@ -569,23 +562,45 @@ const app = (() => {
    * @param {string} stationId
    */
   function deleteSwimlane(stationId) {
-    deleteStation(stationId);
+    const st = state.stations.find(s => s.id === stationId);
+    if (!st) return;
+    uiController.showConfirm(
+      'スイムレーンを解除',
+      `「${st.name}」のスイムレーンを解除します。紐付きファイルは未分類へ移動します。地点はマスタに残ります。`,
+      [
+        {
+          label: '解除', type: 'danger',
+          callback: () => {
+            const cardIds = [...(state.assignments.get(stationId) || [])];
+            for (const cid of cardIds) {
+              moveCard(cid, '');
+            }
+            uiController.removeSwimlane(stationId);
+            state.swimlaneIds.delete(stationId);
+            state.assignments.delete(stationId);
+            uiController.renderStationList(state.stations, getFileCounts());
+            uiController.showToast(`「${st.name}」のスイムレーンを解除しました`, 'info');
+          },
+        },
+        { label: 'キャンセル', type: 'secondary', callback: () => { } },
+      ]
+    );
   }
 
   /**
-   * マスタリセット（全スイムレーン削除・全カード未分類へ）
+   * スイムレーンリセット（全スイムレーン解除・全カード未分類へ・地点一覧は保持）
    */
   function onResetMasterClick() {
     uiController.showConfirm(
-      'マスタリセット',
-      '全スイムレーンを削除し、全カードを未分類に移動します。よろしいですか？',
+      'スイムレーンをリセット',
+      '全スイムレーンを解除し、全カードを未分類に移動します。地点一覧は保持されます。',
       [
         {
           label: 'リセット', type: 'danger',
           callback: () => {
             state.assignments.forEach((cardIds, sid) => {
               if (sid !== '') {
-                for (const cid of cardIds) {
+                for (const cid of [...cardIds]) {
                   uiController.moveCardToArea(cid, '');
                   _moveAssignment(cid, sid, '');
                   const card = state.cards.get(cid);
@@ -594,17 +609,102 @@ const app = (() => {
               }
             });
             uiController.clearAllSwimlanes();
-            state.stations = [];
-            state.assignments.clear();
-            uiController.renderStationList([], new Map());
-            uiController.showResetButton(false);
+            state.swimlaneIds.clear();
+            for (const sid of [...state.assignments.keys()]) {
+              if (sid !== '') state.assignments.delete(sid);
+            }
+            uiController.renderStationList(state.stations, getFileCounts());
             uiController.updateCounts();
-            uiController.showToast('マスタリセットしました', 'info');
+            uiController.showToast('スイムレーンをリセットしました', 'info');
           },
         },
         { label: 'キャンセル', type: 'secondary', callback: () => { } },
       ]
     );
+  }
+
+  // ─── スイムレーン追加 ───
+
+  /**
+   * 指定地点をスイムレーンに追加
+   * @param {string} stationId
+   */
+  function addSwimlane(stationId) {
+    if (state.swimlaneIds.has(stationId)) {
+      uiController.showToast('このスイムレーンは既に追加されています', 'info');
+      return;
+    }
+    const st = state.stations.find(s => s.id === stationId && !s._invalid);
+    if (!st) return;
+    uiController.createSwimlane(st);
+    state.swimlaneIds.add(stationId);
+    uiController.renderStationList(state.stations, getFileCounts());
+    _autoAssignUnclassified();
+    uiController.updateCounts();
+    uiController.showToast(`「${st.name}」をスイムレーンに追加しました`, 'success');
+  }
+
+  /**
+   * 指定区分の全地点をスイムレーンに追加
+   * @param {string} category
+   */
+  function addSwimlanesByCategory(category) {
+    const targets = state.stations.filter(s => !s._invalid && s.category === category && !state.swimlaneIds.has(s.id));
+    if (targets.length === 0) {
+      uiController.showToast(`区分「${category}」の地点はすべて追加済みです`, 'info');
+      return;
+    }
+    for (const st of targets) {
+      uiController.createSwimlane(st);
+      state.swimlaneIds.add(st.id);
+    }
+    uiController.renderStationList(state.stations, getFileCounts());
+    _autoAssignUnclassified();
+    uiController.updateCounts();
+    uiController.showToast(`「${category}」の${targets.length}件をスイムレーンに追加しました`, 'success');
+  }
+
+  /**
+   * 指定テンプレートに属する全地点をスイムレーンに追加
+   * @param {string} templateName
+   */
+  function addSwimlanesByTemplate(templateName) {
+    const targets = state.stations.filter(s =>
+      !s._invalid &&
+      s.templates && s.templates.includes(templateName) &&
+      !state.swimlaneIds.has(s.id)
+    );
+    if (targets.length === 0) {
+      uiController.showToast(`テンプレート「${templateName}」の地点はすべて追加済みです`, 'info');
+      return;
+    }
+    for (const st of targets) {
+      uiController.createSwimlane(st);
+      state.swimlaneIds.add(st.id);
+    }
+    uiController.renderStationList(state.stations, getFileCounts());
+    _autoAssignUnclassified();
+    uiController.updateCounts();
+    uiController.showToast(`「${templateName}」の${targets.length}件をスイムレーンに追加しました`, 'success');
+  }
+
+  /**
+   * 全地点をスイムレーンに追加
+   */
+  function addAllSwimlanes() {
+    const targets = state.stations.filter(s => !s._invalid && !state.swimlaneIds.has(s.id));
+    if (targets.length === 0) {
+      uiController.showToast('全地点が既に追加済みです', 'info');
+      return;
+    }
+    for (const st of targets) {
+      uiController.createSwimlane(st);
+      state.swimlaneIds.add(st.id);
+    }
+    uiController.renderStationList(state.stations, getFileCounts());
+    _autoAssignUnclassified();
+    uiController.updateCounts();
+    uiController.showToast(`${targets.length}件をスイムレーンに追加しました`, 'success');
   }
 
   // ─── CSV 出力 ───
@@ -721,12 +821,13 @@ const app = (() => {
       return;
     }
 
-    const headers = ['地点ID', '地点名', '地点名_読み', '調査区分', '緯度', '経度', 'ファイル名キーワード', '備考'];
+    const headers = ['地点ID', '地点名', '地点名_読み', '調査区分', 'テンプレート', '緯度', '経度', 'ファイル名キーワード', '備考'];
     const rows = validStations.map(s => [
       s.id,
       s.name,
       s.name_read || '',
       s.category,
+      (s.templates || []).join('/'),
       s.lat !== null ? s.lat : '',
       s.lon !== null ? s.lon : '',
       (s.keywords || []).join('|'),
@@ -744,10 +845,10 @@ const app = (() => {
    * 地点マスタの空テンプレートをダウンロード
    */
   function downloadMasterTemplate() {
-    const headers = ['地点ID', '地点名', '地点名_読み', '調査区分', '緯度', '経度', 'ファイル名キーワード', '備考'];
+    const headers = ['地点ID', '地点名', '地点名_読み', '調査区分', 'テンプレート', '緯度', '経度', 'ファイル名キーワード', '備考'];
     const rows = [
-      ['ST001', '津久根', 'つくね', '定点', '35.6812', '139.7671', 'つくね|tsukune|tukune', '備考を入力'],
-      ['ST002', '似島', 'にのしま', '臨時', '35.6812', '139.7671', 'にのしま|ninoshima|ninosima', '備考を入力']
+      ['ST001', '津久根', 'つくね', '定点', '広島湾調査', '35.6812', '139.7671', 'つくね|tsukune|tukune', '備考を入力'],
+      ['ST002', '似島', 'にのしま', '臨時', '広島湾調査/溶存酸素', '35.6812', '139.7671', 'にのしま|ninoshima|ninosima', '備考を入力']
     ];
     const blob = dataProcessor.generateCSVBlob(headers, rows);
     _downloadBlob(blob, '地点マスタ_テンプレート.csv');
@@ -800,5 +901,9 @@ const app = (() => {
     getFileCounts,
     downloadMasterCSV,
     downloadMasterTemplate,
+    addSwimlane,
+    addSwimlanesByCategory,
+    addSwimlanesByTemplate,
+    addAllSwimlanes,
   };
 })();

@@ -35,8 +35,8 @@ const uiController = (() => {
         <div class="swimlane-actions">
           <button class="btn-secondary btn-sm" title="地点を編集"
             onclick="app.editStation('${_esc(station.id)}')">編集</button>
-          <button class="btn-danger btn-sm" title="スイムレーンを削除"
-            onclick="app.deleteSwimlane('${_esc(station.id)}')">削除</button>
+          <button class="btn-danger btn-sm" title="スイムレーンを解除（地点はマスタに残る）"
+            onclick="app.deleteSwimlane('${_esc(station.id)}')">解除</button>
         </div>
       </div>
       <div class="swimlane-body swim-drop-target"
@@ -254,11 +254,59 @@ const uiController = (() => {
     countEl.textContent = `${validStations.length} 件`;
 
     if (validStations.length === 0) {
-      container.innerHTML = '<div class="station-list-empty">地点マスタを読み込んでください</div>';
+      container.innerHTML = `
+        <div class="station-list-empty">
+          地点マスタを読み込んでください
+          <br>
+          <button style="margin-top:8px; color:#2563EB; text-decoration:underline; font-size:0.75rem; background:none; border:none; cursor:pointer;"
+            onclick="app.downloadMasterTemplate()">
+            テンプレートをダウンロード
+          </button>
+        </div>`;
       return;
     }
 
     container.innerHTML = '';
+    const swimlaneIds = app.state.swimlaneIds;
+
+    // ─── テンプレート別一括追加 ───
+    const templateSet = new Set();
+    for (const st of validStations) {
+      if (st.templates) {
+        for (const t of st.templates) templateSet.add(t);
+      }
+    }
+    const templates = [...templateSet];
+
+    {
+      const catSection = document.createElement('div');
+      catSection.className = 'category-batch-section';
+
+      const label = document.createElement('div');
+      label.className = 'category-batch-label';
+      label.textContent = 'テンプレート別一括追加';
+      catSection.appendChild(label);
+
+      const btnGroup = document.createElement('div');
+      btnGroup.className = 'category-batch-btns';
+
+      for (const tmpl of templates) {
+        const btn = document.createElement('button');
+        btn.className = 'btn-secondary btn-sm';
+        btn.textContent = tmpl;
+        btn.onclick = () => app.addSwimlanesByTemplate(tmpl);
+        btnGroup.appendChild(btn);
+      }
+
+      const allBtn = document.createElement('button');
+      allBtn.className = 'btn-secondary btn-sm';
+      allBtn.textContent = '全て';
+      allBtn.onclick = () => app.addAllSwimlanes();
+      btnGroup.appendChild(allBtn);
+
+      catSection.appendChild(btnGroup);
+      container.appendChild(catSection);
+    }
 
     // 地点追加ボタン
     const addBtn = document.createElement('div');
@@ -272,6 +320,7 @@ const uiController = (() => {
 
     for (const st of validStations) {
       const fc = fileCounts ? (fileCounts.get(st.id) || 0) : 0;
+      const hasSwimlane = swimlaneIds && swimlaneIds.has(st.id);
       const item = document.createElement('div');
       item.className = 'station-item';
       item.dataset.stationId = st.id;
@@ -286,8 +335,11 @@ const uiController = (() => {
           <div class="station-meta">${_esc(st.id)} &nbsp;|&nbsp; ${fc} ファイル</div>
         </div>
         <div class="station-actions">
+          ${hasSwimlane
+            ? `<span class="swimlane-added-badge" title="スイムレーン追加済み">✓</span>`
+            : `<button class="btn-primary btn-sm" onclick="app.addSwimlane('${_esc(st.id)}')" title="スイムレーンに追加">＋</button>`
+          }
           <button class="btn-secondary btn-sm" onclick="app.editStation('${_esc(st.id)}')">編集</button>
-          <button class="btn-danger btn-sm" onclick="app.deleteStation('${_esc(st.id)}')">削除</button>
         </div>
       `;
       container.appendChild(item);

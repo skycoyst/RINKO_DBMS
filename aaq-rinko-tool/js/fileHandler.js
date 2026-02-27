@@ -139,6 +139,7 @@ const fileHandler = (() => {
       const lon = parseFloat(get('経度')) || null;
       const note = get('備考');
       const keywords = get('ファイル名キーワード');
+      const template = get('テンプレート');
 
       if (!name || !stationId) continue;
 
@@ -160,6 +161,7 @@ const fileHandler = (() => {
         lon,
         note,
         keywords: keywords ? keywords.split('|').map(k => k.trim()).filter(Boolean) : [],
+        templates: template ? template.split('/').map(t => t.trim()).filter(Boolean) : [],
         _invalid: false,
       });
     }
